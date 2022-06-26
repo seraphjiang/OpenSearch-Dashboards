@@ -19,6 +19,7 @@ import { CoreStart } from '../../../../core/public';
 
 import { PLUGIN_ID, PLUGIN_NAME } from '../../common';
 import { DataSourceManagmentContext } from '../types';
+import { DataSourceTableWithRouter } from './datasource_table';
 
 // interface DataSourceManagementAppDeps {
 //   http: CoreStart['http'];
@@ -52,7 +53,8 @@ export const DataSourceManagementApp = ({ services }: DataSourceManagmentContext
         <Router>
           <Switch>
             <Route path={['/']}>
-              <>
+              <DataSourceTableWithRouter canSave={true} />
+              {/* <>
                 <EuiPage restrictWidth="1000px">
                   <EuiPageBody component="main">
                     <EuiPageHeader>
@@ -104,7 +106,7 @@ export const DataSourceManagementApp = ({ services }: DataSourceManagmentContext
                     </EuiPageContent>
                   </EuiPageBody>
                 </EuiPage>
-              </>
+              </> */}
             </Route>
           </Switch>
         </Router>

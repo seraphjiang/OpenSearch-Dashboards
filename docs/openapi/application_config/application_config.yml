@@ -1,0 +1,241 @@
+openapi: 3.0.3
+info:
+  version: v1
+  title: OpenSearch Dashboards Application Config API
+  contact:
+    name: OpenSearch Dashboards Team
+  description: |-
+    OpenAPI schema for OpenSearch Dashboards Application Config API. This API provides configuration management for application entities.
+tags:
+  - name: application-config
+    description: Manage application configuration entities including retrieval, creation, updates, and deletion
+servers:
+  - url: http://localhost:5601
+paths:
+  /api/appconfig:
+    get:
+      tags:
+        - application-config
+      summary: Retrieve all application configurations
+      description: Returns all application configuration entities
+      operationId: getAllConfig
+      responses:
+        '200':
+          description: Successfully retrieved all configurations
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  value:
+                    type: object
+                    description: Object containing all configuration entities
+                    additionalProperties: true
+              examples:
+                allConfigs:
+                  summary: Example of all configurations
+                  value:
+                    value:
+                      theme: "dark"
+                      language: "en"
+                      timezone: "UTC"
+        '500':
+          description: Internal server error occurred
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error_response'
+  /api/appconfig/{entity}:
+    get:
+      tags:
+        - application-config
+      summary: Retrieve a specific configuration entity
+      description: Returns the configuration value for a specific entity
+      operationId: getEntityConfig
+      parameters:
+        - $ref: '#/components/parameters/entity'
+      responses:
+        '200':
+          description: Successfully retrieved entity configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  value:
+                    type: string
+                    description: The configuration value for the entity
+              examples:
+                themeConfig:
+                  summary: Theme configuration
+                  value:
+                    value: "dark"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/400_bad_request'
+        '404':
+          description: Entity not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error_response'
+        '500':
+          description: Internal server error occurred
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error_response'
+    post:
+      tags:
+        - application-config
+      summary: Update a configuration entity
+      description: Updates the configuration value for a specific entity
+      operationId: updateEntityConfig
+      parameters:
+        - $ref: '#/components/parameters/entity'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateEntityRequest'
+            examples:
+              updateTheme:
+                summary: Update theme configuration
+                value:
+                  newValue: "light"
+              updateLanguage:
+                summary: Update language configuration
+                value:
+                  newValue: "es"
+      responses:
+        '200':
+          description: Successfully updated entity configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  newValue:
+                    type: string
+                    description: The new configuration value for the entity
+              examples:
+                updatedTheme:
+                  summary: Updated theme configuration
+                  value:
+                    newValue: "light"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/400_bad_request'
+        '404':
+          description: Entity not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error_response'
+        '500':
+          description: Internal server error occurred
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error_response'
+    delete:
+      tags:
+        - application-config
+      summary: Delete a configuration entity
+      description: Deletes a specific configuration entity
+      operationId: deleteEntityConfig
+      parameters:
+        - $ref: '#/components/parameters/entity'
+      responses:
+        '200':
+          description: Successfully deleted entity configuration
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deletedEntity:
+                    type: string
+                    description: The name of the deleted entity
+              examples:
+                deletedTheme:
+                  summary: Deleted theme configuration
+                  value:
+                    deletedEntity: "theme"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/400_bad_request'
+        '404':
+          description: Entity not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error_response'
+        '500':
+          description: Internal server error occurred
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/error_response'
+components:
+  parameters:
+    entity:
+      name: entity
+      in: path
+      description: The name of the configuration entity to access
+      required: true
+      schema:
+        type: string
+      example: theme
+  schemas:
+    UpdateEntityRequest:
+      title: Update Entity Request
+      type: object
+      required:
+        - newValue
+      properties:
+        newValue:
+          type: string
+          description: The new value to set for the configuration entity
+          example: "dark"
+    400_bad_request:
+      title: Bad request
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Bad Request
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 400
+    error_response:
+      title: Error Response
+      type: object
+      properties:
+        error:
+          type: string
+          description: Error type
+        message:
+          type: string
+          description: Error message
+        statusCode:
+          type: integer
+          description: HTTP status code

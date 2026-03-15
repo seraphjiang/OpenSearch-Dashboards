@@ -1,0 +1,356 @@
+openapi: 3.0.3
+info:
+  version: v1
+  title: "OpenSearch Dashboards Chat API"
+  contact:
+    name: OpenSearch Dashboards Team
+  description: |-
+    OpenAPI schema for OpenSearch Dashboards Chat API - AI-powered conversational interface
+    supporting both ML Commons agents and external AG-UI servers with streaming SSE responses
+tags:
+  - name: chat
+    description: AI chat interface for conversational interactions with OpenSearch data
+  - name: memory
+    description: Conversation memory and session management for chat agents
+servers:
+  - url: http://localhost:5601
+paths:
+  /api/chat/proxy:
+    post:
+      tags:
+        - chat
+      summary: Send messages to AI agent with streaming response
+      operationId: chatProxy
+      description: |-
+        Forward chat messages to the configured AI agent (ML Commons or AG-UI).
+        Returns Server-Sent Events (SSE) stream for real-time AI responses.
+        Supports both general ML Commons agents and specialized observability agents for PromQL/PPL queries.
+      parameters:
+        - name: dataSourceId
+          in: query
+          required: false
+          description: Optional data source ID for multi-cluster environments
+          schema:
+            type: string
+            example: "datasource-123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - threadId
+                - runId
+                - messages
+              properties:
+                threadId:
+                  type: string
+                  description: Unique identifier for the conversation thread
+                  example: "thread-abc123"
+                runId:
+                  type: string
+                  description: Unique identifier for this execution run
+                  example: "run-xyz789"
+                messages:
+                  type: array
+                  description: Array of conversation messages
+                  items:
+                    type: object
+                    properties:
+                      role:
+                        type: string
+                        enum:
+                          - user
+                          - assistant
+                          - system
+                        description: Role of the message sender
+                      content:
+                        type: string
+                        description: Message content
+                      timestamp:
+                        type: number
+                        description: Unix timestamp in milliseconds
+                  example:
+                    - role: "user"
+                      content: "Show me error logs from the last hour"
+                      timestamp: 1710432000000
+                tools:
+                  type: array
+                  description: Optional array of tools available to the agent
+                  items:
+                    type: object
+                context:
+                  type: array
+                  description: Optional contextual information for the agent
+                  items:
+                    type: object
+                state:
+                  type: object
+                  description: Optional state object for maintaining conversation context
+                forwardedProps:
+                  type: object
+                  description: Additional forwarded properties
+                  properties:
+                    queryAssistLanguage:
+                      type: string
+                      description: Query language for observability agent (PPL/PromQL)
+                      enum:
+                        - PPL
+                        - PromQL
+                      example: "PPL"
+            examples:
+              generalChat:
+                summary: General chat query
+                value:
+                  threadId: "thread-abc123"
+                  runId: "run-xyz789"
+                  messages:
+                    - role: "user"
+                      content: "Show me the top 10 errors in my application logs"
+                      timestamp: 1710432000000
+              observabilityQuery:
+                summary: Observability query with PPL
+                value:
+                  threadId: "thread-obs456"
+                  runId: "run-obs123"
+                  messages:
+                    - role: "user"
+                      content: "Find all HTTP 500 errors in the last 24 hours"
+                      timestamp: 1710432000000
+                  forwardedProps:
+                    queryAssistLanguage: "PPL"
+      responses:
+        '200':
+          description: Streaming response from AI agent
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: Server-Sent Events (SSE) stream with AI responses
+                example: |
+                  data: {"type":"message","content":"Here are the error logs..."}
+
+                  data: {"type":"message","content":"From the analysis..."}
+
+                  data: {"type":"done"}
+        '400':
+          description: Bad request - invalid message format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/400_bad_request'
+        '503':
+          description: Service unavailable - no AI agent configured
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "No AI agent available: ML Commons agent not enabled and AG-UI URL not configured"
+                  statusCode:
+                    type: integer
+                    example: 503
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/500_internal_error'
+  /api/chat/memory/sessions/search:
+    post:
+      tags:
+        - memory
+      summary: Search conversation memory sessions
+      operationId: searchMemorySessions
+      description: |-
+        Search through conversation history and memory sessions for an ML Commons agent.
+        Uses the agent's memory container to retrieve past conversations.
+      parameters:
+        - name: dataSourceId
+          in: query
+          required: false
+          description: Optional data source ID for multi-cluster environments
+          schema:
+            type: string
+            example: "datasource-123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: object
+                  description: OpenSearch query DSL for searching memory sessions
+                  example:
+                    match_all: {}
+                from:
+                  type: number
+                  description: Starting offset for pagination
+                  minimum: 0
+                  default: 0
+                  example: 0
+                size:
+                  type: number
+                  description: Number of results to return
+                  minimum: 1
+                  maximum: 10000
+                  default: 10
+                  example: 20
+                sort:
+                  type: object
+                  description: Sort criteria for the results
+                  example:
+                    timestamp:
+                      order: "desc"
+            examples:
+              allSessions:
+                summary: Get all recent sessions
+                value:
+                  query:
+                    match_all: {}
+                  from: 0
+                  size: 20
+                  sort:
+                    timestamp:
+                      order: "desc"
+              searchByContent:
+                summary: Search sessions by content
+                value:
+                  query:
+                    match:
+                      content: "error logs"
+                  from: 0
+                  size: 10
+      responses:
+        '200':
+          description: Memory sessions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  hits:
+                    type: object
+                    properties:
+                      total:
+                        type: object
+                        properties:
+                          value:
+                            type: number
+                            description: Total number of matching sessions
+                          relation:
+                            type: string
+                            enum:
+                              - eq
+                              - gte
+                      hits:
+                        type: array
+                        description: Array of memory session documents
+                        items:
+                          type: object
+                          properties:
+                            _id:
+                              type: string
+                              description: Session ID
+                            _source:
+                              type: object
+                              description: Session data
+                              properties:
+                                messages:
+                                  type: array
+                                  items:
+                                    type: object
+                                timestamp:
+                                  type: number
+                                threadId:
+                                  type: string
+              examples:
+                sessionsFound:
+                  summary: Successful search with results
+                  value:
+                    hits:
+                      total:
+                        value: 42
+                        relation: "eq"
+                      hits:
+                        - _id: "session-123"
+                          _source:
+                            messages:
+                              - role: "user"
+                                content: "Show me error logs"
+                              - role: "assistant"
+                                content: "Here are the error logs..."
+                            timestamp: 1710432000000
+                            threadId: "thread-abc123"
+        '400':
+          description: Bad request - invalid query format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/400_bad_request'
+        '503':
+          description: Service unavailable - ML Commons agent not configured
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "ML Commons agent ID not configured"
+                  statusCode:
+                    type: integer
+                    example: 503
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/500_internal_error'
+components:
+  schemas:
+    400_bad_request:
+      title: Bad request
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Bad Request
+        message:
+          type: string
+          example: "Invalid request body for ML Commons agent"
+        statusCode:
+          type: integer
+          enum:
+            - 400
+    500_internal_error:
+      title: Internal server error
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Internal Server Error
+        message:
+          type: string
+          example: "An internal server error occurred"
+        statusCode:
+          type: integer
+          enum:
+            - 500

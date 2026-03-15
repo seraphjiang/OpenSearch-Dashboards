@@ -1,0 +1,370 @@
+openapi: 3.0.3
+info:
+  version: v1
+  title: OpenSearch Dashboards REST API
+  contact:
+    name: OpenSearch Dashboards Team
+  description: |
+    Complete REST API documentation for OpenSearch Dashboards.
+
+    This specification consolidates all plugin APIs into a single reference.
+
+    **Generated**: 2026-03-14
+    **OSD Version**: 2.x
+
+    ## Plugin APIs Included
+    - Saved Objects (Core)
+    - Index Patterns
+    - Dashboards & Visualizations
+    - Data Sources
+    - Search & Query
+    - Chat & AI
+    - Telemetry
+    - Console & Dev Tools
+    - Workspace Management
+    - And 15+ more plugins
+servers:
+  - url: http://localhost:5601
+    description: Local development server
+  - url: https://{host}:5601
+    description: Custom OSD instance
+    variables:
+      host:
+        default: localhost
+        description: OpenSearch Dashboards host
+tags:
+  - name: saved objects
+    description: CRUD operations for saved objects (dashboards, visualizations, etc.)
+  - name: index patterns
+    description: Index pattern field discovery and management
+  - name: data source
+    description: Multi-data source connections and management
+  - name: search
+    description: OpenSearch query and search APIs
+  - name: query enhancements
+    description: Query assist and language enhancements
+  - name: chat
+    description: AI-powered chat and interactions
+  - name: telemetry
+    description: Usage telemetry and analytics
+  - name: console
+    description: Dev Console and OpenSearch proxy
+  - name: workspace
+    description: Workspace isolation and management
+  - name: visualization
+    description: Visualization APIs (timeseries, timeline, etc.)
+  - name: home
+    description: Home screen and sample data
+  - name: share
+    description: URL shortening and sharing
+  - name: import-export
+    description: Data import/export utilities
+paths:
+  /api/saved_objects/{type}:
+    $ref: ./saved_objects/saved_objects.yml#/paths/~1api~1saved_objects~1{type}
+  /api/saved_objects/{type}/{id}:
+    $ref: ./saved_objects/saved_objects.yml#/paths/~1api~1saved_objects~1{type}~1{id}
+  /api/saved_objects/_find:
+    $ref: ./saved_objects/saved_objects.yml#/paths/~1api~1saved_objects~1_find
+  /api/saved_objects/_bulk_create:
+    $ref: ./saved_objects/saved_objects.yml#/paths/~1api~1saved_objects~1_bulk_create
+  /api/saved_objects/_bulk_update:
+    $ref: ./saved_objects/saved_objects.yml#/paths/~1api~1saved_objects~1_bulk_update
+  /api/saved_objects/_bulk_get:
+    $ref: ./saved_objects/saved_objects.yml#/paths/~1api~1saved_objects~1_bulk_get
+  /api/saved_objects/_import:
+    $ref: ./saved_objects/saved_objects.yml#/paths/~1api~1saved_objects~1_import
+  /api/saved_objects/_export:
+    $ref: ./saved_objects/saved_objects.yml#/paths/~1api~1saved_objects~1_export
+  /api/saved_objects/_resolve_import_errors:
+    $ref: ./saved_objects/saved_objects.yml#/paths/~1api~1saved_objects~1_resolve_import_errors
+  /api/saved_objects/_migrate:
+    $ref: ./saved_objects/saved_objects.yml#/paths/~1api~1saved_objects~1_migrate
+  /api/index_patterns/_fields_for_wildcard:
+    $ref: ./index_patterns/index_patterns.yml#/paths/~1api~1index_patterns~1_fields_for_wildcard
+  /api/_plugins/_banner/content:
+    $ref: ./banner/banner.yml#/paths/~1api~1_plugins~1_banner~1content
+  /api/appconfig:
+    $ref: ./application_config/application_config.yml#/paths/~1api~1appconfig
+  /api/appconfig/{entity}:
+    $ref: ./application_config/application_config.yml#/paths/~1api~1appconfig~1{entity}
+  /api/data_explorer/example:
+    $ref: ./data_explorer/data_explorer.yml#/paths/~1api~1data_explorer~1example
+  /api/workspaces/_list:
+    $ref: ./workspace/workspace.yml#/paths/~1api~1workspaces~1_list
+  /api/workspaces/{id}:
+    $ref: ./workspace/workspace.yml#/paths/~1api~1workspaces~1{id}
+  /api/workspaces:
+    $ref: ./workspace/workspace.yml#/paths/~1api~1workspaces
+  /api/workspaces/_associate:
+    $ref: ./workspace/workspace.yml#/paths/~1api~1workspaces~1_associate
+  /api/workspaces/_dissociate:
+    $ref: ./workspace/workspace.yml#/paths/~1api~1workspaces~1_dissociate
+  /api/workspaces/_duplicate_saved_objects:
+    $ref: ./workspace/workspace.yml#/paths/~1api~1workspaces~1_duplicate_saved_objects
+  /api/vis_augmenter/stats:
+    $ref: ./vis_augmenter/vis_augmenter.yml#/paths/~1api~1vis_augmenter~1stats
+  /api/geospatial/_indices:
+    $ref: ./region_map/region_map.yml#/paths/~1api~1geospatial~1_indices
+  /api/geospatial/_search:
+    $ref: ./region_map/region_map.yml#/paths/~1api~1geospatial~1_search
+  /api/geospatial/_mappings:
+    $ref: ./region_map/region_map.yml#/paths/~1api~1geospatial~1_mappings
+  /api/home/hits_status:
+    $ref: ./home/home.yml#/paths/~1api~1home~1hits_status
+  /api/data_importer/_cat_indices:
+    $ref: ./data_importer/data_importer.yml#/paths/~1api~1data_importer~1_cat_indices
+  /api/data_importer/_preview:
+    $ref: ./data_importer/data_importer.yml#/paths/~1api~1data_importer~1_preview
+  /api/data_importer/_import_file:
+    $ref: ./data_importer/data_importer.yml#/paths/~1api~1data_importer~1_import_file
+  /api/data_importer/_import_text:
+    $ref: ./data_importer/data_importer.yml#/paths/~1api~1data_importer~1_import_text
+  /api/ui_metric/report:
+    $ref: ./usage_collection/usage_collection.yml#/paths/~1api~1ui_metric~1report
+  /api/stats:
+    $ref: ./usage_collection/usage_collection.yml#/paths/~1api~1stats
+  /internal/data-source-management/validate:
+    $ref: ./data_source/data_source.yml#/paths/~1internal~1data-source-management~1validate
+  /internal/data-source-management/fetchDataSourceMetaData:
+    $ref: ./data_source/data_source.yml#/paths/~1internal~1data-source-management~1fetchDataSourceMetaData
+  /internal/index-pattern-management/preview_scripted_field:
+    $ref: ./index_pattern_management/index_pattern_management.yml#/paths/~1internal~1index-pattern-management~1preview_scripted_field
+  /internal/index-pattern-management/resolve_index/{query}:
+    $ref: ./index_pattern_management/index_pattern_management.yml#/paths/~1internal~1index-pattern-management~1resolve_index~1{query}
+  /api/opensearch-dashboards/dashboards/export:
+    $ref: ./legacy_export/legacy_export.yml#/paths/~1api~1opensearch-dashboards~1dashboards~1export
+  /api/opensearch-dashboards/dashboards/import:
+    $ref: ./legacy_export/legacy_export.yml#/paths/~1api~1opensearch-dashboards~1dashboards~1import
+  /api/metrics/fields:
+    $ref: ./vis_type_timeseries/vis_type_timeseries.yml#/paths/~1api~1metrics~1fields
+  /api/metrics/vis/data:
+    $ref: ./vis_type_timeseries/vis_type_timeseries.yml#/paths/~1api~1metrics~1vis~1data
+  /api/metrics/vis/data-raw:
+    $ref: ./vis_type_timeseries/vis_type_timeseries.yml#/paths/~1api~1metrics~1vis~1data-raw
+  /api/timeline/functions:
+    $ref: ./vis_type_timeline/vis_type_timeline.yml#/paths/~1api~1timeline~1functions
+  /api/timeline/run:
+    $ref: ./vis_type_timeline/vis_type_timeline.yml#/paths/~1api~1timeline~1run
+  /api/timeline/validate/opensearch:
+    $ref: ./vis_type_timeline/vis_type_timeline.yml#/paths/~1api~1timeline~1validate~1opensearch
+  /api/console/proxy:
+    $ref: ./console/console.yml#/paths/~1api~1console~1proxy
+  /api/console/opensearch_config:
+    $ref: ./console/console.yml#/paths/~1api~1console~1opensearch_config
+  /api/console/api_server:
+    $ref: ./console/console.yml#/paths/~1api~1console~1api_server
+  /api/shorten_url:
+    $ref: ./share/share.yml#/paths/~1api~1shorten_url
+  /api/short_url/{urlId}:
+    $ref: ./share/share.yml#/paths/~1api~1short_url~1{urlId}
+  /goto/{urlId}:
+    $ref: ./share/share.yml#/paths/~1goto~1{urlId}
+  /api/chat/proxy:
+    $ref: ./chat/chat.yml#/paths/~1api~1chat~1proxy
+  /api/chat/memory/sessions/search:
+    $ref: ./chat/chat.yml#/paths/~1api~1chat~1memory~1sessions~1search
+  /api/telemetry/v2/optIn:
+    $ref: ./telemetry/telemetry.yml#/paths/~1api~1telemetry~1v2~1optIn
+  /api/telemetry/v2/clusters/_opt_in_stats:
+    $ref: ./telemetry/telemetry.yml#/paths/~1api~1telemetry~1v2~1clusters~1_opt_in_stats
+  /api/telemetry/v2/clusters/_stats:
+    $ref: ./telemetry/telemetry.yml#/paths/~1api~1telemetry~1v2~1clusters~1_stats
+  /api/telemetry/v2/userHasSeenNotice:
+    $ref: ./telemetry/telemetry.yml#/paths/~1api~1telemetry~1v2~1userHasSeenNotice
+  /api/directquery/dsl/search:
+    $ref: ./data_source_management/data_source_management.yml#/paths/~1api~1directquery~1dsl~1search
+  /api/directquery/dsl/cat.indices:
+    $ref: ./data_source_management/data_source_management.yml#/paths/~1api~1directquery~1dsl~1cat.indices
+  /api/directquery/dsl/indices.getFieldMapping:
+    $ref: ./data_source_management/data_source_management.yml#/paths/~1api~1directquery~1dsl~1indices.getFieldMapping
+  /api/directquery/dsl/indices.getFieldSettings:
+    $ref: ./data_source_management/data_source_management.yml#/paths/~1api~1directquery~1dsl~1indices.getFieldSettings
+  /api/directquery/dsl/cat.indices/dataSourceMDSId={dataSourceMDSId}:
+    $ref: ./data_source_management/data_source_management.yml#/paths/~1api~1directquery~1dsl~1cat.indices~1dataSourceMDSId={dataSourceMDSId}
+  /api/directquery/dsl/indices.getFieldMapping/dataSourceMDSId={dataSourceMDSId}:
+    $ref: ./data_source_management/data_source_management.yml#/paths/~1api~1directquery~1dsl~1indices.getFieldMapping~1dataSourceMDSId={dataSourceMDSId}
+  /api/directquery/dsl/indices.getFieldSettings/dataSourceMDSId={dataSourceMDSId}:
+    $ref: ./data_source_management/data_source_management.yml#/paths/~1api~1directquery~1dsl~1indices.getFieldSettings~1dataSourceMDSId={dataSourceMDSId}
+  /api/directquery/ppl/search:
+    $ref: ./data_source_management/data_source_management.yml#/paths/~1api~1directquery~1ppl~1search
+  /api/datasourcemanagement/query/jobs:
+    $ref: ./data_source_management/data_source_management.yml#/paths/~1api~1datasourcemanagement~1query~1jobs
+  /api/datasourcemanagement/query/jobs/{queryId}/{dataSourceMDSId}:
+    $ref: ./data_source_management/data_source_management.yml#/paths/~1api~1datasourcemanagement~1query~1jobs~1{queryId}~1{dataSourceMDSId}
+  /api/datasourcemanagement/query/jobs/{queryId}:
+    $ref: ./data_source_management/data_source_management.yml#/paths/~1api~1datasourcemanagement~1query~1jobs~1{queryId}
+  /api/directquery/dataconnections:
+    $ref: ./data_source_management/data_source_management.yml#/paths/~1api~1directquery~1dataconnections
+  /api/directquery/dataconnections/dataSourceMDSId={dataSourceMDSId}:
+    $ref: ./data_source_management/data_source_management.yml#/paths/~1api~1directquery~1dataconnections~1dataSourceMDSId={dataSourceMDSId}
+  /api/directquery/dataconnections/{name}:
+    $ref: ./data_source_management/data_source_management.yml#/paths/~1api~1directquery~1dataconnections~1{name}
+  /api/directquery/dataconnections/{name}/dataSourceMDSId={dataSourceMDSId}:
+    $ref: ./data_source_management/data_source_management.yml#/paths/~1api~1directquery~1dataconnections~1{name}~1dataSourceMDSId={dataSourceMDSId}
+  /api/directquery/dataconnections/edit:
+    $ref: ./data_source_management/data_source_management.yml#/paths/~1api~1directquery~1dataconnections~1edit
+  /api/directquery/dataconnections/edit/status:
+    $ref: ./data_source_management/data_source_management.yml#/paths/~1api~1directquery~1dataconnections~1edit~1status
+  /api/opensearch-dashboards/management/saved_objects/_find:
+    $ref: ./saved_objects_management/saved_objects_management.yml#/paths/~1api~1opensearch-dashboards~1management~1saved_objects~1_find
+  /api/opensearch-dashboards/management/saved_objects/{type}/{id}:
+    $ref: ./saved_objects_management/saved_objects_management.yml#/paths/~1api~1opensearch-dashboards~1management~1saved_objects~1{type}~1{id}
+  /api/opensearch-dashboards/management/saved_objects/relationships/{type}/{id}:
+    $ref: ./saved_objects_management/saved_objects_management.yml#/paths/~1api~1opensearch-dashboards~1management~1saved_objects~1relationships~1{type}~1{id}
+  /api/opensearch-dashboards/management/saved_objects/_allowed_types:
+    $ref: ./saved_objects_management/saved_objects_management.yml#/paths/~1api~1opensearch-dashboards~1management~1saved_objects~1_allowed_types
+  /api/opensearch-dashboards/management/saved_objects/scroll/counts:
+    $ref: ./saved_objects_management/saved_objects_management.yml#/paths/~1api~1opensearch-dashboards~1management~1saved_objects~1scroll~1counts
+  /api/opensearch-dashboards/management/saved_objects/scroll/export:
+    $ref: ./saved_objects_management/saved_objects_management.yml#/paths/~1api~1opensearch-dashboards~1management~1saved_objects~1scroll~1export
+  /api/enhancements/search/{strategy}:
+    $ref: ./query_enhancements/query_enhancements.yml#/paths/~1api~1enhancements~1search~1{strategy}
+  /api/enhancements/assist/languages:
+    $ref: ./query_enhancements/query_enhancements.yml#/paths/~1api~1enhancements~1assist~1languages
+  /api/enhancements/assist/generate:
+    $ref: ./query_enhancements/query_enhancements.yml#/paths/~1api~1enhancements~1assist~1generate
+  /api/enhancements/connections/{id}:
+    $ref: ./query_enhancements/query_enhancements.yml#/paths/~1api~1enhancements~1connections~1{id}
+  /api/enhancements/jobs:
+    $ref: ./query_enhancements/query_enhancements.yml#/paths/~1api~1enhancements~1jobs
+  /api/enhancements/remote_cluster/list:
+    $ref: ./query_enhancements/query_enhancements.yml#/paths/~1api~1enhancements~1remote_cluster~1list
+  /api/enhancements/remote_cluster/indexes:
+    $ref: ./query_enhancements/query_enhancements.yml#/paths/~1api~1enhancements~1remote_cluster~1indexes
+  /api/enhancements/resources:
+    $ref: ./query_enhancements/query_enhancements.yml#/paths/~1api~1enhancements~1resources
+  /internal/search/{strategy}/{id}:
+    $ref: ./data/data.yml#/paths/~1internal~1search~1{strategy}~1{id}
+  /internal/_msearch:
+    $ref: ./data/data.yml#/paths/~1internal~1_msearch
+  /{dynamicPath}:
+    $ref: ./bfetch/bfetch.yml#/paths/~1{dynamicPath}
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+      description: Basic authentication using OpenSearch credentials
+    bearerAuth:
+      type: http
+      scheme: bearer
+      description: Bearer token authentication
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: security_authentication
+      description: Session cookie authentication
+  schemas:
+    Error400:
+      title: Bad Request
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Bad Request
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 400
+    Error401:
+      title: Unauthorized
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Unauthorized
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 401
+    Error403:
+      title: Forbidden
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Forbidden
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 403
+    Error404:
+      title: Not Found
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Not Found
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 404
+    Error409:
+      title: Conflict
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Conflict
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 409
+    Error500:
+      title: Internal Server Error
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Internal Server Error
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 500
+security:
+  - basicAuth: []
+  - bearerAuth: []
+  - cookieAuth: []

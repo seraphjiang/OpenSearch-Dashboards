@@ -1,0 +1,138 @@
+openapi: 3.0.3
+info:
+  version: v1
+  title: "OpenSearch Dashboards Home API"
+  contact:
+    name: OpenSearch Dashboards Team
+  description: "OpenAPI schema for OpenSearch Dashboards Home API"
+tags:
+  - name: home
+    description: Home plugin API for checking data status
+servers:
+  - url: http://localhost:5601
+paths:
+  /api/home/hits_status:
+    post:
+      tags:
+        - home
+      summary: Check if an index has data matching a query
+      description: Executes a search query against an OpenSearch index to determine if there are any matching documents. Returns the count of hits found.
+      operationId: checkHitsStatus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - index
+                - query
+              properties:
+                index:
+                  type: string
+                  description: The name of the index to search
+                  example: "opensearch_dashboards_sample_data_logs"
+                query:
+                  type: object
+                  description: OpenSearch query DSL object
+                  additionalProperties: true
+                  example:
+                    match_all: {}
+            examples:
+              matchAllQuery:
+                summary: Match all documents in index
+                value:
+                  index: "opensearch_dashboards_sample_data_logs"
+                  query:
+                    match_all: {}
+              termQuery:
+                summary: Search for specific term
+                value:
+                  index: "my-index"
+                  query:
+                    term:
+                      status: "active"
+              boolQuery:
+                summary: Complex boolean query
+                value:
+                  index: "logs-*"
+                  query:
+                    bool:
+                      must:
+                        - range:
+                            "@timestamp":
+                              gte: "2024-01-01"
+                      filter:
+                        - term:
+                            level: "error"
+      responses:
+        '200':
+          description: Successfully checked hits status
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - count
+                properties:
+                  count:
+                    type: integer
+                    description: Number of documents found (limited to 1 as this is a status check)
+                    minimum: 0
+                    maximum: 1
+                    example: 1
+              examples:
+                hasData:
+                  summary: Index has matching data
+                  value:
+                    count: 1
+                noData:
+                  summary: No matching data found
+                  value:
+                    count: 0
+        '400':
+          description: Bad request - invalid index name or query syntax
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/400_bad_request'
+              examples:
+                invalidQuery:
+                  summary: Invalid query syntax
+                  value:
+                    error: "Bad Request"
+                    message: "Query parsing error"
+                    statusCode: 400
+        '500':
+          description: Internal server error - OpenSearch connection or other server errors
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                  message:
+                    type: string
+                  statusCode:
+                    type: integer
+components:
+  schemas:
+    400_bad_request:
+      title: Bad request
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Bad Request
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 400

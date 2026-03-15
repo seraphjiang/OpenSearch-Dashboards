@@ -1,0 +1,353 @@
+openapi: 3.0.3
+info:
+  version: v1
+  title: OpenSearch Dashboards Timeline (Timelion) API
+  contact:
+    name: OpenSearch Dashboards Team
+  description: OpenAPI schema for OpenSearch Dashboards Timeline (Timelion) API - provides endpoints for time series analysis using Timelion expression language
+tags:
+  - name: timeline
+    description: Timeline (Timelion) endpoints for time series expression evaluation and validation
+servers:
+  - url: http://localhost:5601
+paths:
+  /api/timeline/functions:
+    get:
+      tags:
+        - timeline
+      summary: Get available Timelion functions
+      description: Retrieve the list of all available Timelion functions that can be used in expressions. Returns function metadata including name, parameters, and help text.
+      operationId: getFunctions
+      responses:
+        '200':
+          description: Functions retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      description: Function name
+                    help:
+                      type: string
+                      description: Help text describing the function
+                    args:
+                      type: array
+                      description: Function arguments
+                      items:
+                        type: object
+                        properties:
+                          name:
+                            type: string
+                          types:
+                            type: array
+                            items:
+                              type: string
+                    chainable:
+                      type: boolean
+                      description: Whether the function can be chained
+              examples:
+                functionsResponse:
+                  summary: Example functions response
+                  value:
+                    - name: ".es"
+                      help: "Queries OpenSearch and returns the results as a seriesList"
+                      args:
+                        - name: "index"
+                          types: ["string", "null"]
+                        - name: "timefield"
+                          types: ["string", "null"]
+                        - name: "metric"
+                          types: ["string", "null"]
+                      chainable: true
+                    - name: ".sum"
+                      help: "Adds the values of one or more series together"
+                      args:
+                        - name: "inputSeries"
+                          types: ["seriesList"]
+                      chainable: true
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/timeline/run:
+    post:
+      tags:
+        - timeline
+      summary: Execute Timelion expressions
+      description: Execute one or more Timelion expressions and return the resulting time series data. Supports advanced filtering and time range specifications.
+      operationId: runTimeline
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - sheet
+              properties:
+                sheet:
+                  type: array
+                  description: Array of Timelion expression strings to evaluate
+                  items:
+                    type: string
+                  example: [".es(*)"]
+                extended:
+                  type: object
+                  description: Extended query parameters including OpenSearch filters
+                  properties:
+                    es:
+                      type: object
+                      properties:
+                        filter:
+                          type: object
+                          properties:
+                            bool:
+                              type: object
+                              properties:
+                                filter:
+                                  type: array
+                                  items:
+                                    type: object
+                                    additionalProperties: true
+                                must:
+                                  type: array
+                                  items:
+                                    type: object
+                                    additionalProperties: true
+                                should:
+                                  type: array
+                                  items:
+                                    type: object
+                                    additionalProperties: true
+                                must_not:
+                                  type: array
+                                  items:
+                                    type: object
+                                    additionalProperties: true
+                time:
+                  type: object
+                  description: Time range for the query
+                  required:
+                    - interval
+                    - timezone
+                  properties:
+                    from:
+                      type: string
+                      description: Start time (ISO 8601 or relative)
+                      example: "now-7d"
+                    to:
+                      type: string
+                      description: End time (ISO 8601 or relative)
+                      example: "now"
+                    interval:
+                      type: string
+                      description: Time bucket interval (e.g., "1h", "1d", "auto")
+                      example: "1h"
+                    timezone:
+                      type: string
+                      description: Timezone for date calculations
+                      example: "UTC"
+            examples:
+              simpleQuery:
+                summary: Simple count query
+                value:
+                  sheet:
+                    - ".es(*)"
+                  time:
+                    from: "now-7d"
+                    to: "now"
+                    interval: "1h"
+                    timezone: "UTC"
+              multipleExpressions:
+                summary: Multiple expressions with operations
+                value:
+                  sheet:
+                    - ".es(index=logs*, metric=avg:bytes)"
+                    - ".es(index=logs*, metric=sum:bytes).divide(1024)"
+                  time:
+                    from: "2024-01-01T00:00:00.000Z"
+                    to: "2024-01-31T23:59:59.999Z"
+                    interval: "1d"
+                    timezone: "UTC"
+              withFilters:
+                summary: Query with OpenSearch filters
+                value:
+                  sheet:
+                    - ".es(*)"
+                  extended:
+                    es:
+                      filter:
+                        bool:
+                          must:
+                            - term:
+                                status: "200"
+                  time:
+                    from: "now-24h"
+                    to: "now"
+                    interval: "auto"
+                    timezone: "UTC"
+      responses:
+        '200':
+          description: Expressions executed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sheet:
+                    type: array
+                    description: Array of time series results, one per expression
+                    items:
+                      type: object
+                      properties:
+                        type:
+                          type: string
+                          example: "seriesList"
+                        list:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              data:
+                                type: array
+                                description: Array of [timestamp, value] pairs
+                                items:
+                                  type: array
+                                  items:
+                                    oneOf:
+                                      - type: number
+                                      - type: null
+                              label:
+                                type: string
+                              fit:
+                                type: string
+                  stats:
+                    type: object
+                    description: Execution statistics
+                    properties:
+                      cacheCount:
+                        type: integer
+                      invokeCount:
+                        type: integer
+                      queryCount:
+                        type: integer
+              examples:
+                successResponse:
+                  summary: Successful execution response
+                  value:
+                    sheet:
+                      - type: "seriesList"
+                        list:
+                          - data: [[1704067200000, 1234], [1704070800000, 2345], [1704074400000, 3456]]
+                            label: "Count"
+                            fit: "nearest"
+                    stats:
+                      cacheCount: 0
+                      invokeCount: 5
+                      queryCount: 1
+        '400':
+          description: Bad request - invalid expression or parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/400_bad_request'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  attributes:
+                    type: object
+                    properties:
+                      title:
+                        type: string
+  /api/timeline/validate/opensearch:
+    get:
+      tags:
+        - timeline
+      summary: Validate OpenSearch connection
+      description: Validate that OpenSearch is accessible and the configured time field exists. Returns the min and max timestamps found in the default index.
+      operationId: validateOpenSearch
+      responses:
+        '200':
+          description: Validation response (may indicate success or failure)
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    title: Validation Success
+                    properties:
+                      ok:
+                        type: boolean
+                        enum: [true]
+                      field:
+                        type: string
+                        description: Time field name
+                      min:
+                        type: number
+                        description: Minimum timestamp (epoch milliseconds)
+                      max:
+                        type: number
+                        description: Maximum timestamp (epoch milliseconds)
+                  - type: object
+                    title: Validation Failure
+                    properties:
+                      ok:
+                        type: boolean
+                        enum: [false]
+                      resp:
+                        type: object
+                        description: OpenSearch response or error
+              examples:
+                validationSuccess:
+                  summary: Successful validation
+                  value:
+                    ok: true
+                    field: "@timestamp"
+                    min: 1704067200000
+                    max: 1706745599999
+                validationFailure:
+                  summary: Validation failure
+                  value:
+                    ok: false
+                    resp:
+                      error:
+                        type: "index_not_found_exception"
+                        reason: "no such index"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+components:
+  schemas:
+    400_bad_request:
+      title: Bad request
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Bad Request
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 400

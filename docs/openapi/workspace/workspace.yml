@@ -1,0 +1,583 @@
+openapi: 3.0.3
+info:
+  version: v1
+  title: OpenSearch Dashboards Workspace API
+  contact:
+    name: OpenSearch Dashboards Team
+  description: |-
+    OpenAPI schema for OpenSearch Dashboards Workspace API. Workspaces provide logical grouping and isolation of saved objects and data sources.
+tags:
+  - name: workspace
+    description: Create, manage, and organize workspaces for saved objects
+servers:
+  - url: http://localhost:5601
+components:
+  parameters:
+    workspaceId:
+      name: id
+      in: path
+      description: Unique identifier of the workspace
+      required: true
+      schema:
+        type: string
+        example: workspace-123
+  schemas:
+    WorkspacePermissionMode:
+      type: string
+      enum:
+        - read
+        - write
+        - library_read
+        - library_write
+      description: Permission mode for workspace access
+    PrincipalType:
+      type: string
+      enum:
+        - users
+        - groups
+      description: Type of principal (user or group)
+    WorkspacePermissions:
+      type: object
+      description: Permissions mapped by permission mode and principal type
+      additionalProperties:
+        type: object
+        additionalProperties:
+          type: array
+          items:
+            type: string
+      example:
+        read:
+          users: ["user1", "user2"]
+          groups: ["admin-group"]
+        write:
+          users: ["user1"]
+    WorkspaceSettings:
+      type: object
+      properties:
+        permissions:
+          $ref: '#/components/schemas/WorkspacePermissions'
+        dataSources:
+          type: array
+          items:
+            type: string
+          description: List of data source IDs associated with this workspace
+        dataConnections:
+          type: array
+          items:
+            type: string
+          description: List of data connection IDs associated with this workspace
+    WorkspaceCreateAttributes:
+      type: object
+      required:
+        - name
+        - features
+      properties:
+        name:
+          type: string
+          maxLength: 40
+          description: Name of the workspace (cannot be empty or blank)
+          example: "Analytics Workspace"
+        features:
+          type: array
+          minItems: 1
+          items:
+            type: string
+          description: List of feature configurations. Must include exactly one use case (all, observability, security-analytics, essentials, or search)
+          example: ["use-case-observability", "discover", "dashboards"]
+        description:
+          type: string
+          maxLength: 200
+          description: Optional description of the workspace
+          example: "Workspace for analytics dashboards and visualizations"
+        color:
+          type: string
+          description: Color theme for the workspace (must be valid color format)
+          example: "#3366FF"
+        icon:
+          type: string
+          description: Icon identifier for the workspace
+          example: "wsAnalytics"
+        defaultVISTheme:
+          type: string
+          description: Default visualization theme
+          example: "light"
+        reserved:
+          type: boolean
+          description: Whether the workspace is reserved (system workspace)
+    WorkspaceUpdateAttributes:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 40
+          description: Name of the workspace
+        features:
+          type: array
+          minItems: 1
+          items:
+            type: string
+          description: List of feature configurations
+        description:
+          type: string
+          maxLength: 200
+          description: Description of the workspace
+        color:
+          type: string
+          description: Color theme for the workspace
+        icon:
+          type: string
+          description: Icon identifier
+        defaultVISTheme:
+          type: string
+          description: Default visualization theme
+        reserved:
+          type: boolean
+          description: Whether the workspace is reserved
+    WorkspaceListRequest:
+      type: object
+      required:
+        - perPage
+        - page
+      properties:
+        search:
+          type: string
+          description: Search query string
+          example: "analytics"
+        sortOrder:
+          type: string
+          description: Sort order (asc or desc)
+          example: "asc"
+        perPage:
+          type: integer
+          minimum: 0
+          default: 20
+          description: Number of workspaces per page
+        page:
+          type: integer
+          minimum: 0
+          default: 1
+          description: Page number
+        sortField:
+          type: string
+          description: Field to sort by
+          example: "name"
+        searchFields:
+          type: array
+          items:
+            type: string
+          description: Fields to search in
+          example: ["name", "description"]
+        permissionModes:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkspacePermissionMode'
+          description: Filter by permission modes
+    SavedObjectReference:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+          description: Saved object ID
+          example: "dashboard-123"
+        type:
+          type: string
+          description: Saved object type
+          example: "dashboard"
+    DuplicateSavedObjectsRequest:
+      type: object
+      required:
+        - objects
+        - targetWorkspace
+      properties:
+        objects:
+          type: array
+          items:
+            $ref: '#/components/schemas/SavedObjectReference'
+          description: List of saved objects to duplicate
+        includeReferencesDeep:
+          type: boolean
+          default: true
+          description: Whether to include all referenced objects
+        targetWorkspace:
+          type: string
+          description: Target workspace ID
+          example: "target-workspace-123"
+    400_bad_request:
+      title: Bad request
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Bad Request
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 400
+    404_not_found:
+      title: Not found
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Not Found
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 404
+paths:
+  /api/workspaces/_list:
+    post:
+      tags:
+        - workspace
+      summary: List workspaces with optional filtering and pagination
+      operationId: listWorkspaces
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkspaceListRequest'
+            example:
+              search: "analytics"
+              perPage: 20
+              page: 1
+              sortField: "name"
+              sortOrder: "asc"
+      responses:
+        '200':
+          description: Successfully retrieved workspace list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  result:
+                    type: object
+                    properties:
+                      workspaces:
+                        type: array
+                        items:
+                          type: object
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/400_bad_request'
+  /api/workspaces/{id}:
+    get:
+      tags:
+        - workspace
+      summary: Get a specific workspace by ID
+      operationId: getWorkspace
+      parameters:
+        - $ref: '#/components/parameters/workspaceId'
+      responses:
+        '200':
+          description: Successfully retrieved workspace
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  result:
+                    type: object
+        '404':
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/404_not_found'
+    put:
+      tags:
+        - workspace
+      summary: Update an existing workspace
+      operationId: updateWorkspace
+      parameters:
+        - $ref: '#/components/parameters/workspaceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - attributes
+                - settings
+              properties:
+                attributes:
+                  $ref: '#/components/schemas/WorkspaceUpdateAttributes'
+                settings:
+                  $ref: '#/components/schemas/WorkspaceSettings'
+            example:
+              attributes:
+                name: "Updated Analytics Workspace"
+                description: "Updated description"
+                features: ["use-case-observability", "discover"]
+              settings:
+                permissions:
+                  write:
+                    users: ["user1"]
+                dataSources: ["datasource-1"]
+      responses:
+        '200':
+          description: Successfully updated workspace
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  result:
+                    type: object
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/400_bad_request'
+        '404':
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/404_not_found'
+    delete:
+      tags:
+        - workspace
+      summary: Delete a workspace
+      operationId: deleteWorkspace
+      parameters:
+        - $ref: '#/components/parameters/workspaceId'
+      responses:
+        '200':
+          description: Successfully deleted workspace
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '404':
+          description: Workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/404_not_found'
+  /api/workspaces:
+    post:
+      tags:
+        - workspace
+      summary: Create a new workspace
+      operationId: createWorkspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - attributes
+                - settings
+              properties:
+                attributes:
+                  $ref: '#/components/schemas/WorkspaceCreateAttributes'
+                settings:
+                  $ref: '#/components/schemas/WorkspaceSettings'
+            examples:
+              basicWorkspace:
+                summary: Create a basic workspace
+                value:
+                  attributes:
+                    name: "My Analytics Workspace"
+                    features: ["use-case-observability", "discover", "dashboards"]
+                    description: "Workspace for observability analytics"
+                    color: "#3366FF"
+                  settings:
+                    permissions:
+                      read:
+                        users: ["user1", "user2"]
+                      write:
+                        users: ["user1"]
+                    dataSources: ["datasource-1"]
+      responses:
+        '200':
+          description: Successfully created workspace
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  result:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/400_bad_request'
+  /api/workspaces/_associate:
+    post:
+      tags:
+        - workspace
+      summary: Associate saved objects with a workspace
+      operationId: associateSavedObjects
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - workspaceId
+                - savedObjects
+              properties:
+                workspaceId:
+                  type: string
+                  description: Target workspace ID
+                savedObjects:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/SavedObjectReference'
+            example:
+              workspaceId: "workspace-123"
+              savedObjects:
+                - id: "dashboard-456"
+                  type: "dashboard"
+                - id: "visualization-789"
+                  type: "visualization"
+      responses:
+        '200':
+          description: Successfully associated saved objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/400_bad_request'
+  /api/workspaces/_dissociate:
+    post:
+      tags:
+        - workspace
+      summary: Dissociate saved objects from a workspace
+      operationId: dissociateSavedObjects
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - workspaceId
+                - savedObjects
+              properties:
+                workspaceId:
+                  type: string
+                  description: Source workspace ID
+                savedObjects:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/SavedObjectReference'
+            example:
+              workspaceId: "workspace-123"
+              savedObjects:
+                - id: "dashboard-456"
+                  type: "dashboard"
+      responses:
+        '200':
+          description: Successfully dissociated saved objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/400_bad_request'
+  /api/workspaces/_duplicate_saved_objects:
+    post:
+      tags:
+        - workspace
+      summary: Duplicate saved objects from one workspace to another
+      operationId: duplicateSavedObjects
+      description: Exports saved objects from the current workspace and imports them into the target workspace with new IDs
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DuplicateSavedObjectsRequest'
+            example:
+              objects:
+                - type: "dashboard"
+                  id: "dashboard-123"
+                - type: "visualization"
+                  id: "viz-456"
+              includeReferencesDeep: true
+              targetWorkspace: "target-workspace-789"
+      responses:
+        '200':
+          description: Successfully duplicated saved objects
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  successCount:
+                    type: integer
+                  successResults:
+                    type: array
+                    items:
+                      type: object
+                  errors:
+                    type: array
+                    items:
+                      type: object
+        '400':
+          description: Bad request - invalid objects or target workspace not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/400_bad_request'

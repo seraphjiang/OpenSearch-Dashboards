@@ -1,0 +1,964 @@
+openapi: 3.0.3
+info:
+  version: v1
+  title: OpenSearch Dashboards Data Source Management API
+  contact:
+    name: OpenSearch Dashboards Team
+  description: |-
+    OpenAPI schema for OpenSearch Dashboards Data Source Management API. This API provides endpoints for
+    managing data sources, executing DSL and PPL queries, managing data connections, and running direct queries
+    against multiple data sources.
+tags:
+  - name: dsl
+    description: Execute DSL (Domain Specific Language) queries and retrieve index information
+  - name: ppl
+    description: Execute PPL (Piped Processing Language) queries for log analysis
+  - name: datasources
+    description: Run and manage direct queries (async job execution) against data sources
+  - name: data-connections
+    description: Manage data connections for external data sources like Prometheus and S3
+servers:
+  - url: http://localhost:5601
+components:
+  parameters:
+    dataSourceMDSId:
+      name: dataSourceMDSId
+      in: path
+      description: The ID of the multi-data-source (MDS) to query. Optional parameter for MDS-enabled deployments.
+      required: false
+      schema:
+        type: string
+        example: "abc123def456"
+    dataConnectionName:
+      name: name
+      in: path
+      description: The name of the data connection
+      required: true
+      schema:
+        type: string
+        example: "my-prometheus-connection"
+    queryId:
+      name: queryId
+      in: path
+      description: The unique identifier for an async query job
+      required: true
+      schema:
+        type: string
+        example: "job-12345"
+  schemas:
+    DSLSearchRequest:
+      type: object
+      required:
+        - index
+      properties:
+        index:
+          type: string
+          description: The index or index pattern to search
+          example: "logs-*"
+        size:
+          type: number
+          description: Maximum number of documents to return
+          example: 100
+        query:
+          type: object
+          description: OpenSearch query DSL
+        aggs:
+          type: object
+          description: Aggregations to perform
+        sort:
+          type: array
+          description: Sort order for results
+    PPLSearchRequest:
+      type: object
+      required:
+        - query
+        - format
+      properties:
+        query:
+          type: string
+          description: PPL query string (e.g., "source=logs | where status=200 | stats count()")
+          example: "source=logs-* | where status >= 400 | stats count() by status"
+        format:
+          type: string
+          description: Response format
+          enum:
+            - json
+            - jdbc
+            - csv
+          example: "jdbc"
+    DirectQueryRequest:
+      type: object
+      required:
+        - query
+        - lang
+        - datasource
+      properties:
+        query:
+          type: string
+          description: The query string to execute
+          example: "SELECT * FROM logs WHERE status = 200"
+        lang:
+          type: string
+          description: Query language
+          enum:
+            - sql
+            - ppl
+          example: "sql"
+        datasource:
+          type: string
+          description: The data source name to query against
+          example: "my_datasource"
+        sessionId:
+          type: string
+          description: Optional session ID for query execution context
+          example: "session-abc123"
+    DataConnectionCreateRequest:
+      type: object
+      required:
+        - name
+        - connector
+        - allowedRoles
+        - properties
+      properties:
+        name:
+          type: string
+          description: Unique name for the data connection
+          example: "my-prometheus-datasource"
+        connector:
+          type: string
+          description: Connector type
+          enum:
+            - prometheus
+            - s3glue
+          example: "prometheus"
+        allowedRoles:
+          type: array
+          items:
+            type: string
+          description: List of roles allowed to access this connection
+          example: ["admin", "data_analyst"]
+        properties:
+          type: object
+          description: Connector-specific configuration properties (varies by connector type)
+          example:
+            prometheus.uri: "http://localhost:9090"
+            prometheus.auth.type: "basicauth"
+    DataConnectionUpdateRequest:
+      type: object
+      required:
+        - name
+        - allowedRoles
+      properties:
+        name:
+          type: string
+          description: Name of the data connection to update
+          example: "my-prometheus-datasource"
+        allowedRoles:
+          type: array
+          items:
+            type: string
+          description: Updated list of roles allowed to access this connection
+          example: ["admin", "data_analyst", "viewer"]
+    DataConnectionStatusUpdateRequest:
+      type: object
+      required:
+        - name
+        - status
+      properties:
+        name:
+          type: string
+          description: Name of the data connection to update
+          example: "my-prometheus-datasource"
+        status:
+          type: string
+          description: New status for the data connection
+          enum:
+            - ACTIVE
+            - INACTIVE
+          example: "ACTIVE"
+    400_bad_request:
+      title: Bad request
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Bad Request
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 400
+    500_internal_error:
+      title: Internal server error
+      type: object
+      required:
+        - statusCode
+      properties:
+        statusCode:
+          type: integer
+          enum:
+            - 500
+        message:
+          type: string
+paths:
+  /api/directquery/dsl/search:
+    post:
+      tags:
+        - dsl
+      summary: Execute a DSL search query
+      operationId: executeDSLSearch
+      description: |-
+        Execute an OpenSearch DSL query against the specified index. Supports full OpenSearch Query DSL
+        including queries, aggregations, and sorting.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DSLSearchRequest'
+            examples:
+              simpleSearch:
+                summary: Simple match query
+                value:
+                  index: "logs-*"
+                  size: 50
+                  query:
+                    match:
+                      message: "error"
+              aggregation:
+                summary: Query with aggregation
+                value:
+                  index: "logs-*"
+                  size: 0
+                  aggs:
+                    status_codes:
+                      terms:
+                        field: "status"
+      responses:
+        '200':
+          description: Query executed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                description: OpenSearch search response with hits and aggregations
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/500_internal_error'
+  /api/directquery/dsl/cat.indices:
+    get:
+      tags:
+        - dsl
+      summary: List indices
+      operationId: listIndices
+      description: Retrieve a list of indices in the cluster using the cat indices API.
+      parameters:
+        - in: query
+          name: format
+          required: true
+          schema:
+            type: string
+            enum:
+              - json
+              - text
+          description: Output format
+          example: "json"
+        - in: query
+          name: index
+          schema:
+            type: string
+          description: Index pattern to filter results
+          example: "logs-*"
+      responses:
+        '200':
+          description: Successfully retrieved indices list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/500_internal_error'
+  /api/directquery/dsl/indices.getFieldMapping:
+    get:
+      tags:
+        - dsl
+      summary: Get field mappings
+      operationId: getFieldMappings
+      description: Retrieve field mappings for the specified index.
+      parameters:
+        - in: query
+          name: index
+          required: true
+          schema:
+            type: string
+          description: Index name or pattern
+          example: "logs-*"
+      responses:
+        '200':
+          description: Successfully retrieved field mappings
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Index field mappings
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/500_internal_error'
+  /api/directquery/dsl/indices.getFieldSettings:
+    get:
+      tags:
+        - dsl
+      summary: Get index settings
+      operationId: getIndexSettings
+      description: Retrieve settings for the specified index.
+      parameters:
+        - in: query
+          name: index
+          required: true
+          schema:
+            type: string
+          description: Index name or pattern
+          example: "logs-*"
+      responses:
+        '200':
+          description: Successfully retrieved index settings
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Index settings
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/500_internal_error'
+  /api/directquery/dsl/cat.indices/dataSourceMDSId={dataSourceMDSId}:
+    get:
+      tags:
+        - dsl
+      summary: List indices from a specific data source
+      operationId: listIndicesMDS
+      description: Retrieve a list of indices from a specific multi-data-source.
+      parameters:
+        - $ref: '#/components/parameters/dataSourceMDSId'
+        - in: query
+          name: format
+          required: true
+          schema:
+            type: string
+            enum:
+              - json
+              - text
+          description: Output format
+          example: "json"
+        - in: query
+          name: index
+          schema:
+            type: string
+          description: Index pattern to filter results
+          example: "logs-*"
+      responses:
+        '200':
+          description: Successfully retrieved indices list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/500_internal_error'
+  /api/directquery/dsl/indices.getFieldMapping/dataSourceMDSId={dataSourceMDSId}:
+    get:
+      tags:
+        - dsl
+      summary: Get field mappings from a specific data source
+      operationId: getFieldMappingsMDS
+      description: Retrieve field mappings for the specified index from a specific multi-data-source.
+      parameters:
+        - $ref: '#/components/parameters/dataSourceMDSId'
+        - in: query
+          name: index
+          required: true
+          schema:
+            type: string
+          description: Index name or pattern
+          example: "logs-*"
+      responses:
+        '200':
+          description: Successfully retrieved field mappings
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/500_internal_error'
+  /api/directquery/dsl/indices.getFieldSettings/dataSourceMDSId={dataSourceMDSId}:
+    get:
+      tags:
+        - dsl
+      summary: Get index settings from a specific data source
+      operationId: getIndexSettingsMDS
+      description: Retrieve settings for the specified index from a specific multi-data-source.
+      parameters:
+        - $ref: '#/components/parameters/dataSourceMDSId'
+        - in: query
+          name: index
+          required: true
+          schema:
+            type: string
+          description: Index name or pattern
+          example: "logs-*"
+      responses:
+        '200':
+          description: Successfully retrieved index settings
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/500_internal_error'
+  /api/directquery/ppl/search:
+    post:
+      tags:
+        - ppl
+      summary: Execute a PPL query
+      operationId: executePPLQuery
+      description: |-
+        Execute a Piped Processing Language (PPL) query. PPL is a query language designed for
+        processing and analyzing log data with a pipeline-based syntax similar to Unix pipes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PPLSearchRequest'
+            examples:
+              logAnalysis:
+                summary: Analyze error logs by status
+                value:
+                  query: "source=logs-* | where status >= 400 | stats count() by status"
+                  format: "jdbc"
+              timeSeriesAggregation:
+                summary: Time-series aggregation
+                value:
+                  query: "source=metrics-* | stats avg(response_time) by span(@timestamp, 1h)"
+                  format: "json"
+      responses:
+        '200':
+          description: Query executed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                description: PPL query results
+        '500':
+          description: Query execution failed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                  message:
+                    type: string
+  /api/datasourcemanagement/query/jobs:
+    post:
+      tags:
+        - datasources
+      summary: Submit an async direct query job
+      operationId: submitDirectQuery
+      description: |-
+        Submit an asynchronous direct query job to execute SQL or PPL queries against a specific
+        data source. Returns a query ID that can be used to check job status and retrieve results.
+      parameters:
+        - in: query
+          name: dataSourceMDSId
+          schema:
+            type: string
+          description: Optional MDS data source ID for multi-data-source deployments
+          example: "ds-12345"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DirectQueryRequest'
+            examples:
+              sqlQuery:
+                summary: SQL query on data source
+                value:
+                  query: "SELECT * FROM logs WHERE timestamp > '2024-01-01'"
+                  lang: "sql"
+                  datasource: "my_s3_datasource"
+              pplQuery:
+                summary: PPL query on data source
+                value:
+                  query: "source=my_s3_datasource.logs | where status=200"
+                  lang: "ppl"
+                  datasource: "my_s3_datasource"
+                  sessionId: "session-abc123"
+      responses:
+        '200':
+          description: Query job submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  queryId:
+                    type: string
+                    description: Unique identifier for the query job
+                  status:
+                    type: string
+                    description: Initial status of the query job
+        '500':
+          description: Failed to submit query
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/500_internal_error'
+  /api/datasourcemanagement/query/jobs/{queryId}/{dataSourceMDSId}:
+    get:
+      tags:
+        - datasources
+      summary: Get query job status
+      operationId: getQueryJobStatus
+      description: |-
+        Retrieve the status and results of an async query job. Poll this endpoint to check if
+        the query has completed and to retrieve results once ready.
+      parameters:
+        - $ref: '#/components/parameters/queryId'
+        - name: dataSourceMDSId
+          in: path
+          required: false
+          schema:
+            type: string
+          description: Optional MDS data source ID
+          example: "ds-12345"
+      responses:
+        '200':
+          description: Successfully retrieved job status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - PENDING
+                      - RUNNING
+                      - SUCCESS
+                      - FAILED
+                  result:
+                    type: object
+                    description: Query results (present when status is SUCCESS)
+        '500':
+          description: Failed to retrieve job status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                  message:
+                    type: string
+  /api/datasourcemanagement/query/jobs/{queryId}:
+    delete:
+      tags:
+        - datasources
+      summary: Cancel a query job
+      operationId: cancelQueryJob
+      description: Cancel a running async query job.
+      parameters:
+        - $ref: '#/components/parameters/queryId'
+      responses:
+        '200':
+          description: Query job cancelled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '500':
+          description: Failed to cancel query job
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                  message:
+                    type: string
+  /api/directquery/dataconnections:
+    get:
+      tags:
+        - data-connections
+      summary: List all data connections
+      operationId: listDataConnections
+      description: |-
+        Retrieve a list of all data connections configured in the cluster. Data connections
+        represent external data sources like Prometheus, S3/Glue, etc.
+      responses:
+        '200':
+          description: Successfully retrieved data connections list
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    connector:
+                      type: string
+                    status:
+                      type: string
+        '500':
+          description: Failed to fetch data connections
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                  response:
+                    type: object
+    post:
+      tags:
+        - data-connections
+      summary: Create a new data connection
+      operationId: createDataConnection
+      description: |-
+        Create a new data connection to an external data source. For Prometheus data sources in
+        MDS-enabled deployments, this also creates a corresponding saved object.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DataConnectionCreateRequest'
+            examples:
+              prometheus:
+                summary: Create Prometheus connection
+                value:
+                  name: "prod-prometheus"
+                  connector: "prometheus"
+                  allowedRoles: ["admin", "monitoring"]
+                  properties:
+                    prometheus.uri: "http://prometheus.example.com:9090"
+                    prometheus.auth.type: "basicauth"
+                    prometheus.auth.username: "user"
+                    prometheus.auth.password: "pass"
+              s3glue:
+                summary: Create S3/Glue connection
+                value:
+                  name: "my-s3-datasource"
+                  connector: "s3glue"
+                  allowedRoles: ["admin", "data_analyst"]
+                  properties:
+                    glue.indexstore.opensearch.uri: "http://localhost:9200"
+                    glue.indexstore.opensearch.region: "us-west-2"
+      responses:
+        '200':
+          description: Data connection created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Failed to create data connection
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                  response:
+                    type: object
+  /api/directquery/dataconnections/dataSourceMDSId={dataSourceMDSId}:
+    get:
+      tags:
+        - data-connections
+      summary: List data connections from a specific data source
+      operationId: listDataConnectionsMDS
+      description: Retrieve data connections from a specific multi-data-source.
+      parameters:
+        - $ref: '#/components/parameters/dataSourceMDSId'
+      responses:
+        '200':
+          description: Successfully retrieved data connections
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        '500':
+          description: Failed to fetch data connections
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                  error:
+                    type: object
+                  message:
+                    type: string
+  /api/directquery/dataconnections/{name}:
+    get:
+      tags:
+        - data-connections
+      summary: Get a data connection by name
+      operationId: getDataConnection
+      description: Retrieve details of a specific data connection by its name.
+      parameters:
+        - $ref: '#/components/parameters/dataConnectionName'
+      responses:
+        '200':
+          description: Successfully retrieved data connection
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  name:
+                    type: string
+                  connector:
+                    type: string
+                  properties:
+                    type: object
+                  allowedRoles:
+                    type: array
+                    items:
+                      type: string
+        '500':
+          description: Failed to fetch data connection
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                  message:
+                    type: string
+    delete:
+      tags:
+        - data-connections
+      summary: Delete a data connection
+      operationId: deleteDataConnection
+      description: |-
+        Delete a data connection by name. For non-MDS deployments, this removes the backend
+        data connection only.
+      parameters:
+        - $ref: '#/components/parameters/dataConnectionName'
+      responses:
+        '200':
+          description: Data connection deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Failed to delete data connection
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                  message:
+                    type: string
+  /api/directquery/dataconnections/{name}/dataSourceMDSId={dataSourceMDSId}:
+    get:
+      tags:
+        - data-connections
+      summary: Get a data connection from a specific data source
+      operationId: getDataConnectionMDS
+      description: Retrieve details of a specific data connection from a multi-data-source.
+      parameters:
+        - $ref: '#/components/parameters/dataConnectionName'
+        - $ref: '#/components/parameters/dataSourceMDSId'
+      responses:
+        '200':
+          description: Successfully retrieved data connection
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Failed to fetch data connection
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                  error:
+                    type: object
+                  message:
+                    type: string
+    delete:
+      tags:
+        - data-connections
+      summary: Delete a data connection from a specific data source
+      operationId: deleteDataConnectionMDS
+      description: |-
+        Delete a data connection from a specific multi-data-source. This removes both the backend
+        data connection and any associated saved objects (e.g., for Prometheus connections).
+      parameters:
+        - $ref: '#/components/parameters/dataConnectionName'
+        - $ref: '#/components/parameters/dataSourceMDSId'
+      responses:
+        '200':
+          description: Data connection deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  deleted:
+                    type: string
+        '500':
+          description: Failed to delete data connection
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                  error:
+                    type: object
+                  message:
+                    type: string
+  /api/directquery/dataconnections/edit:
+    post:
+      tags:
+        - data-connections
+      summary: Update data connection access control
+      operationId: updateDataConnectionAccess
+      description: |-
+        Update the allowed roles for a data connection. This modifies which roles have permission
+        to access and query this data connection.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DataConnectionUpdateRequest'
+            examples:
+              updateRoles:
+                summary: Update allowed roles
+                value:
+                  name: "prod-prometheus"
+                  allowedRoles: ["admin", "monitoring", "viewer"]
+      responses:
+        '200':
+          description: Data connection updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Failed to update data connection
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                  message:
+                    type: string
+  /api/directquery/dataconnections/edit/status:
+    post:
+      tags:
+        - data-connections
+      summary: Update data connection status
+      operationId: updateDataConnectionStatus
+      description: |-
+        Update the status of a data connection (ACTIVE or INACTIVE). Inactive connections cannot
+        be queried but remain configured in the system.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DataConnectionStatusUpdateRequest'
+            examples:
+              activate:
+                summary: Activate a data connection
+                value:
+                  name: "prod-prometheus"
+                  status: "ACTIVE"
+              deactivate:
+                summary: Deactivate a data connection
+                value:
+                  name: "prod-prometheus"
+                  status: "INACTIVE"
+      responses:
+        '200':
+          description: Data connection status updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Failed to update data connection status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                  message:
+                    type: string

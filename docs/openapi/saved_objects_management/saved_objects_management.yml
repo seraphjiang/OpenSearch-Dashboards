@@ -1,0 +1,709 @@
+openapi: 3.0.3
+info:
+  version: v1
+  title: OpenSearch Dashboards Saved Objects Management API
+  contact:
+    name: OpenSearch Dashboards Team
+  description: |-
+    OpenAPI schema for OpenSearch Dashboards Saved Objects Management API.
+    This plugin provides management operations for saved objects including finding, retrieving,
+    analyzing relationships, counting, and exporting saved objects with enhanced metadata.
+tags:
+  - name: saved objects management
+    description: Advanced management operations for saved objects including relationship discovery, bulk counting, and export operations
+servers:
+  - url: http://localhost:5601
+components:
+  parameters:
+    type:
+      name: type
+      in: path
+      description: The type of saved object
+      required: true
+      schema:
+        type: string
+        example: dashboard
+    id:
+      name: id
+      in: path
+      description: The unique identifier of the saved object
+      required: true
+      schema:
+        type: string
+        example: 67a9021c-c97e-4499-8150-9722ab44edd4
+  schemas:
+    SavedObjectWithMeta:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The unique identifier of the saved object
+        type:
+          type: string
+          description: The type of the saved object
+        attributes:
+          type: object
+          description: The attributes of the saved object
+        references:
+          type: array
+          description: References to other saved objects
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              type:
+                type: string
+              name:
+                type: string
+        namespaces:
+          type: array
+          description: Namespaces this saved object exists in
+          items:
+            type: string
+        workspaces:
+          type: array
+          description: Workspaces this saved object exists in
+          items:
+            type: string
+        migrationVersion:
+          type: object
+          description: Migration version information
+        version:
+          type: string
+          description: Version of the saved object
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp of last update
+        meta:
+          type: object
+          description: Enhanced metadata injected by the management service
+          properties:
+            icon:
+              type: string
+              description: Icon identifier for the object type
+            title:
+              type: string
+              description: Display title for the object
+            editUrl:
+              type: string
+              description: URL to edit this object
+            inAppUrl:
+              type: object
+              description: In-app navigation information
+              properties:
+                path:
+                  type: string
+                uiCapabilitiesPath:
+                  type: string
+            namespaceType:
+              type: string
+              description: Type of namespace support
+              enum:
+                - single
+                - multiple
+                - agnostic
+            hiddenType:
+              type: boolean
+              description: Whether this type is hidden from the UI
+    RelationshipObject:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The ID of the related object
+        type:
+          type: string
+          description: The type of the related object
+        relationship:
+          type: string
+          enum:
+            - parent
+            - child
+          description: The relationship type
+        meta:
+          type: object
+          description: Metadata about the related object
+    CountsResponse:
+      type: object
+      properties:
+        type:
+          type: object
+          description: Count of objects by type
+          additionalProperties:
+            type: integer
+        namespaces:
+          type: object
+          description: Count of objects by namespace
+          additionalProperties:
+            type: integer
+        workspaces:
+          type: object
+          description: Count of objects by workspace
+          additionalProperties:
+            type: integer
+    ExportedObject:
+      type: object
+      properties:
+        _id:
+          type: string
+          description: The ID of the exported object
+        _type:
+          type: string
+          description: The type of the exported object
+        _source:
+          type: object
+          description: The attributes of the exported object
+        _meta:
+          type: object
+          properties:
+            savedObjectVersion:
+              type: integer
+              description: Version of the saved object format
+        _migrationVersion:
+          type: object
+          description: Migration version information
+        _references:
+          type: array
+          description: References to other saved objects
+          items:
+            type: object
+    400_bad_request:
+      title: Bad request
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Bad Request
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 400
+    404_not_found:
+      title: Not found
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Not Found
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 404
+paths:
+  /api/opensearch-dashboards/management/saved_objects/_find:
+    get:
+      tags:
+        - saved objects management
+      summary: Find saved objects with enhanced metadata
+      description: |-
+        Search and retrieve saved objects with enhanced management metadata including icons,
+        edit URLs, and other UI-related information. This endpoint extends the core saved
+        objects find API with additional management-specific features.
+      operationId: findSavedObjectsWithMeta
+      parameters:
+        - name: type
+          in: query
+          description: The type or types of saved objects to find
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+          example: dashboard
+        - name: perPage
+          in: query
+          description: Number of results per page
+          schema:
+            type: integer
+            minimum: 0
+            default: 20
+          example: 20
+        - name: page
+          in: query
+          description: Page number to retrieve
+          schema:
+            type: integer
+            minimum: 0
+            default: 1
+          example: 1
+        - name: search
+          in: query
+          description: Search string to filter objects
+          schema:
+            type: string
+          example: "my dashboard"
+        - name: defaultSearchOperator
+          in: query
+          description: Default search operator
+          schema:
+            type: string
+            enum:
+              - OR
+              - AND
+            default: OR
+        - name: sortField
+          in: query
+          description: Field to sort results by
+          schema:
+            type: string
+          example: updated_at
+        - name: sortOrder
+          in: query
+          description: Sort order direction
+          schema:
+            type: string
+            enum:
+              - asc
+              - desc
+          example: desc
+        - name: fields
+          in: query
+          description: Specific fields to include in the response attributes
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+          example: title
+        - name: hasReference
+          in: query
+          description: Filter objects that reference a specific object
+          schema:
+            type: object
+            properties:
+              type:
+                type: string
+              id:
+                type: string
+          style: deepObject
+          explode: true
+          example:
+            type: visualization
+            id: 67a9021c-c97e-4499-8150-9722ab44edd4
+        - name: namespaces
+          in: query
+          description: Filter by namespace(s)
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+          example: default
+        - name: workspaces
+          in: query
+          description: Filter by workspace(s)
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+      responses:
+        '200':
+          description: Successfully retrieved saved objects with enhanced metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  page:
+                    type: integer
+                    description: Current page number
+                  per_page:
+                    type: integer
+                    description: Number of results per page
+                  total:
+                    type: integer
+                    description: Total number of matching objects
+                  saved_objects:
+                    type: array
+                    description: Array of saved objects with enhanced metadata
+                    items:
+                      $ref: '#/components/schemas/SavedObjectWithMeta'
+              examples:
+                findDashboards:
+                  summary: Example of finding dashboards
+                  value:
+                    page: 1
+                    per_page: 20
+                    total: 5
+                    saved_objects:
+                      - id: dashboard-001
+                        type: dashboard
+                        attributes:
+                          title: Revenue Dashboard
+                        meta:
+                          icon: dashboardApp
+                          title: Revenue Dashboard
+                          editUrl: /management/opensearch-dashboards/objects/dashboard/dashboard-001
+                          inAppUrl:
+                            path: /app/dashboards#/view/dashboard-001
+                            uiCapabilitiesPath: dashboard.show
+                        references:
+                          - id: vis-001
+                            type: visualization
+                            name: panel_0
+        '400':
+          description: Bad request - invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/400_bad_request'
+  /api/opensearch-dashboards/management/saved_objects/{type}/{id}:
+    get:
+      tags:
+        - saved objects management
+      summary: Get a single saved object with enhanced metadata
+      description: |-
+        Retrieve a specific saved object by type and ID with enhanced management metadata.
+        This includes additional information like icons, edit URLs, and display titles.
+      operationId: getSavedObjectWithMeta
+      parameters:
+        - $ref: '#/components/parameters/type'
+        - $ref: '#/components/parameters/id'
+      responses:
+        '200':
+          description: Successfully retrieved the saved object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedObjectWithMeta'
+              examples:
+                getDashboard:
+                  summary: Example of retrieving a dashboard
+                  value:
+                    id: dashboard-001
+                    type: dashboard
+                    attributes:
+                      title: Revenue Dashboard
+                      description: Main revenue tracking dashboard
+                      panelsJSON: '[...]'
+                    meta:
+                      icon: dashboardApp
+                      title: Revenue Dashboard
+                      editUrl: /management/opensearch-dashboards/objects/dashboard/dashboard-001
+                      inAppUrl:
+                        path: /app/dashboards#/view/dashboard-001
+                        uiCapabilitiesPath: dashboard.show
+                    references:
+                      - id: vis-001
+                        type: visualization
+                        name: panel_0
+                    version: WzEyMywxXQ==
+                    updated_at: '2024-03-14T10:30:00.000Z'
+        '404':
+          description: Saved object not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/404_not_found'
+  /api/opensearch-dashboards/management/saved_objects/relationships/{type}/{id}:
+    get:
+      tags:
+        - saved objects management
+      summary: Get relationships for a saved object
+      description: |-
+        Discover and retrieve all relationships (parent and child) for a specific saved object.
+        This includes objects that reference the specified object (children) and objects that
+        the specified object references (parents).
+      operationId: getSavedObjectRelationships
+      parameters:
+        - $ref: '#/components/parameters/type'
+        - $ref: '#/components/parameters/id'
+        - name: size
+          in: query
+          description: Maximum number of relationships to return
+          schema:
+            type: integer
+            default: 10000
+          example: 100
+        - name: savedObjectTypes
+          in: query
+          description: Types of saved objects to include in relationship search
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+          example: ["visualization", "index-pattern"]
+      responses:
+        '200':
+          description: Successfully retrieved relationships
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  relations:
+                    type: array
+                    description: Array of related objects
+                    items:
+                      $ref: '#/components/schemas/RelationshipObject'
+              examples:
+                dashboardRelationships:
+                  summary: Example of dashboard relationships
+                  value:
+                    relations:
+                      - id: vis-001
+                        type: visualization
+                        relationship: parent
+                        meta:
+                          title: Revenue Chart
+                          icon: visualizeApp
+                          editUrl: /app/visualize#/edit/vis-001
+                          inAppUrl:
+                            path: /app/visualize#/edit/vis-001
+                            uiCapabilitiesPath: visualize.show
+                      - id: pattern-001
+                        type: index-pattern
+                        relationship: parent
+                        meta:
+                          title: logs-*
+                          icon: indexPatternApp
+                          editUrl: /management/opensearch-dashboards/index_patterns/pattern-001
+                          inAppUrl:
+                            path: /management/opensearch-dashboards/index_patterns/pattern-001
+                            uiCapabilitiesPath: management.opensearchDashboards.indexPatterns
+        '404':
+          description: Saved object not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/404_not_found'
+        '400':
+          description: Bad request - invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/400_bad_request'
+  /api/opensearch-dashboards/management/saved_objects/_allowed_types:
+    get:
+      tags:
+        - saved objects management
+      summary: Get allowed saved object types
+      description: |-
+        Retrieve the list of saved object types that are importable and exportable.
+        This is determined by the saved object type registry and indicates which
+        types can be managed through the UI.
+      operationId: getAllowedTypes
+      responses:
+        '200':
+          description: Successfully retrieved allowed types
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  types:
+                    type: array
+                    description: Array of allowed saved object type names
+                    items:
+                      type: string
+              examples:
+                allowedTypes:
+                  summary: Example of allowed types
+                  value:
+                    types:
+                      - dashboard
+                      - visualization
+                      - search
+                      - index-pattern
+                      - config
+                      - url
+  /api/opensearch-dashboards/management/saved_objects/scroll/counts:
+    post:
+      tags:
+        - saved objects management
+      summary: Get counts of saved objects by type, namespace, and workspace
+      description: |-
+        Retrieve aggregated counts of saved objects grouped by type, namespace, and workspace.
+        This is useful for displaying statistics and summaries in management UIs. Supports
+        filtering by search string and workspace availability.
+      operationId: getScrollCounts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - typesToInclude
+              properties:
+                typesToInclude:
+                  type: array
+                  description: Types of saved objects to include in the count
+                  items:
+                    type: string
+                  example:
+                    - dashboard
+                    - visualization
+                namespacesToInclude:
+                  type: array
+                  description: Namespaces to include in the count
+                  items:
+                    type: string
+                  example:
+                    - default
+                    - custom
+                workspaces:
+                  type: array
+                  description: Workspaces to filter by
+                  items:
+                    type: string
+                  example:
+                    - workspace-1
+                    - workspace-2
+                availableWorkspaces:
+                  type: array
+                  description: Available workspaces for the user
+                  items:
+                    type: string
+                  example:
+                    - workspace-1
+                    - workspace-2
+                searchString:
+                  type: string
+                  description: Search string to filter objects by title
+                  example: "revenue"
+            examples:
+              countRequest:
+                summary: Example count request
+                value:
+                  typesToInclude:
+                    - dashboard
+                    - visualization
+                  namespacesToInclude:
+                    - default
+                  workspaces:
+                    - workspace-1
+                  searchString: "sales"
+      responses:
+        '200':
+          description: Successfully retrieved counts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CountsResponse'
+              examples:
+                countsResponse:
+                  summary: Example counts response
+                  value:
+                    type:
+                      dashboard: 15
+                      visualization: 42
+                    namespaces:
+                      default: 50
+                      custom: 7
+                    workspaces:
+                      workspace-1: 35
+                      workspace-2: 22
+        '400':
+          description: Bad request - invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/400_bad_request'
+  /api/opensearch-dashboards/management/saved_objects/scroll/export:
+    post:
+      tags:
+        - saved objects management
+      summary: Export saved objects in legacy format
+      description: |-
+        Export saved objects in a legacy format compatible with older OpenSearch Dashboards
+        versions. This endpoint scrolls through all matching objects and returns them with
+        their attributes, references, and migration information.
+      operationId: scrollExport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - typesToInclude
+              properties:
+                typesToInclude:
+                  type: array
+                  description: Types of saved objects to export
+                  items:
+                    type: string
+                  example:
+                    - dashboard
+                    - visualization
+            examples:
+              exportRequest:
+                summary: Example export request
+                value:
+                  typesToInclude:
+                    - dashboard
+                    - visualization
+                    - search
+      responses:
+        '200':
+          description: Successfully exported saved objects
+          content:
+            application/json:
+              schema:
+                type: array
+                description: Array of exported saved objects
+                items:
+                  $ref: '#/components/schemas/ExportedObject'
+              examples:
+                exportResponse:
+                  summary: Example export response
+                  value:
+                    - _id: dashboard-001
+                      _type: dashboard
+                      _source:
+                        title: Revenue Dashboard
+                        description: Main revenue tracking
+                        panelsJSON: '[...]'
+                      _meta:
+                        savedObjectVersion: 2
+                      _migrationVersion:
+                        dashboard: 7.9.3
+                      _references:
+                        - id: vis-001
+                          type: visualization
+                          name: panel_0
+                    - _id: vis-001
+                      _type: visualization
+                      _source:
+                        title: Revenue Chart
+                        visState: '{...}'
+                      _meta:
+                        savedObjectVersion: 2
+                      _migrationVersion:
+                        visualization: 7.9.3
+                      _references:
+                        - id: pattern-001
+                          type: index-pattern
+                          name: kibanaSavedObjectMeta.searchSourceJSON.index
+        '400':
+          description: Bad request - invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/400_bad_request'

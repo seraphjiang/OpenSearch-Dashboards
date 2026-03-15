@@ -1,0 +1,370 @@
+openapi: 3.0.3
+info:
+  version: v1
+  title: OpenSearch Dashboards Data Plugin API
+  contact:
+    name: OpenSearch Dashboards Team
+  description: |-
+    OpenAPI schema for OpenSearch Dashboards Data Plugin Search API.
+
+    This API provides core search functionality for querying OpenSearch including:
+    - Internal search endpoint with strategy-based execution
+    - Multi-search (msearch) for batch query operations
+    - Search cancellation support
+tags:
+  - name: search
+    description: Core search operations for querying OpenSearch data
+servers:
+  - url: http://localhost:5601
+paths:
+  /internal/search/{strategy}/{id}:
+    post:
+      tags:
+        - search
+      summary: Execute a search request using a specific strategy
+      description: |-
+        Executes a search request using the specified search strategy.
+        Supports both initial search requests and polling for async search results by providing an ID.
+        This is an internal API and should not be used directly by external clients.
+      operationId: executeSearch
+      parameters:
+        - name: strategy
+          in: path
+          description: The search strategy to use (e.g., default, opensearch, sql, ppl)
+          required: true
+          schema:
+            type: string
+          example: default
+        - name: id
+          in: path
+          description: Optional search ID for retrieving results of an async search
+          required: false
+          schema:
+            type: string
+          example: FkZrWXZKSG8xS1FsSDh5bGROMlEwTWcbd2lTZXJxTXhRTDJCMHBTaWJpNGRSQToxMzk1OQ==
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Search request body with query DSL and options
+            examples:
+              simpleSearch:
+                summary: Simple match query
+                value:
+                  params:
+                    index: my-index-*
+                    body:
+                      query:
+                        match:
+                          message: "search text"
+                      size: 100
+              asyncSearch:
+                summary: Poll async search results
+                value:
+                  id: "FkZrWXZKSG8xS1FsSDh5bGROMlEwTWcbd2lTZXJxTXhRTDJCMHBTaWJpNGRSQToxMzk1OQ=="
+      responses:
+        '200':
+          description: Search executed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    description: Search ID for async searches
+                  isPartial:
+                    type: boolean
+                    description: Whether the results are partial (async search still running)
+                  isRunning:
+                    type: boolean
+                    description: Whether the async search is still running
+                  total:
+                    type: integer
+                    description: Total number of documents matched
+                  loaded:
+                    type: integer
+                    description: Number of documents loaded so far
+                  rawResponse:
+                    type: object
+                    description: The raw OpenSearch response
+                    properties:
+                      took:
+                        type: integer
+                        description: Time in milliseconds the search took
+                      timed_out:
+                        type: boolean
+                        description: Whether the search timed out
+                      _shards:
+                        type: object
+                        properties:
+                          total:
+                            type: integer
+                          successful:
+                            type: integer
+                          skipped:
+                            type: integer
+                          failed:
+                            type: integer
+                      hits:
+                        type: object
+                        properties:
+                          total:
+                            oneOf:
+                              - type: integer
+                              - type: object
+                                properties:
+                                  value:
+                                    type: integer
+                                  relation:
+                                    type: string
+                                    enum:
+                                      - eq
+                                      - gte
+                          max_score:
+                            type: number
+                            nullable: true
+                          hits:
+                            type: array
+                            items:
+                              type: object
+              examples:
+                success:
+                  summary: Successful search response
+                  value:
+                    id: "FkZrWXZKSG8xS1FsSDh5bGROMlEwTWcbd2lTZXJxTXhRTDJCMHBTaWJpNGRSQToxMzk1OQ=="
+                    isPartial: false
+                    isRunning: false
+                    total: 100
+                    loaded: 100
+                    rawResponse:
+                      took: 5
+                      timed_out: false
+                      _shards:
+                        total: 5
+                        successful: 5
+                        skipped: 0
+                        failed: 0
+                      hits:
+                        total:
+                          value: 100
+                          relation: eq
+                        max_score: 1.0
+                        hits: []
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                  - attributes
+                properties:
+                  message:
+                    type: string
+                    description: Error message
+                  attributes:
+                    type: object
+                    properties:
+                      error:
+                        type: string
+                        description: Detailed error information
+    delete:
+      tags:
+        - search
+      summary: Cancel an ongoing search request
+      description: |-
+        Cancels an ongoing async search request by ID.
+        Only works for search strategies that support cancellation.
+      operationId: cancelSearch
+      parameters:
+        - name: strategy
+          in: path
+          description: The search strategy used for the search
+          required: true
+          schema:
+            type: string
+          example: default
+        - name: id
+          in: path
+          description: The search ID to cancel
+          required: true
+          schema:
+            type: string
+          example: FkZrWXZKSG8xS1FsSDh5bGROMlEwTWcbd2lTZXJxTXhRTDJCMHBTaWJpNGRSQToxMzk1OQ==
+      responses:
+        '200':
+          description: Search cancelled successfully or strategy does not support cancellation
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Error cancelling search
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                  - attributes
+                properties:
+                  message:
+                    type: string
+                    description: Error message
+                  attributes:
+                    type: object
+                    properties:
+                      error:
+                        type: string
+                        description: Detailed error information
+  /internal/_msearch:
+    post:
+      tags:
+        - search
+      summary: Execute multiple search requests in a single call
+      description: |-
+        Executes multiple search requests using the OpenSearch _msearch API.
+        This is an internal legacy endpoint and should not be used for new code.
+        Each search consists of a header (with index and preferences) and a body (with query DSL).
+      operationId: msearch
+      deprecated: true
+      parameters:
+        - name: data_source_id
+          in: query
+          description: Optional data source ID for multi-data-source support
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - searches
+              properties:
+                searches:
+                  type: array
+                  description: Array of search requests
+                  items:
+                    type: object
+                    required:
+                      - header
+                      - body
+                    properties:
+                      header:
+                        type: object
+                        required:
+                          - index
+                        properties:
+                          index:
+                            type: string
+                            description: Index pattern to search
+                          preference:
+                            oneOf:
+                              - type: number
+                              - type: string
+                            description: Shard preference for routing
+                      body:
+                        type: object
+                        description: OpenSearch query DSL
+            examples:
+              multipleSearches:
+                summary: Multiple search requests
+                value:
+                  searches:
+                    - header:
+                        index: logs-*
+                        preference: _local
+                      body:
+                        query:
+                          match:
+                            level: error
+                        size: 10
+                    - header:
+                        index: metrics-*
+                      body:
+                        query:
+                          range:
+                            timestamp:
+                              gte: now-1h
+                        size: 100
+      responses:
+        '200':
+          description: Multi-search executed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: object
+                    description: Combined multi-search response
+                    properties:
+                      responses:
+                        type: array
+                        description: Array of individual search responses
+                        items:
+                          type: object
+              examples:
+                success:
+                  summary: Successful msearch response
+                  value:
+                    body:
+                      responses:
+                        - took: 5
+                          hits:
+                            total:
+                              value: 10
+                              relation: eq
+                            hits: []
+                        - took: 3
+                          hits:
+                            total:
+                              value: 50
+                              relation: eq
+                            hits: []
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                  - attributes
+                properties:
+                  message:
+                    type: string
+                    description: Error message
+                  attributes:
+                    type: object
+                    properties:
+                      error:
+                        type: string
+                        description: Detailed error information
+components:
+  schemas:
+    400_bad_request:
+      title: Bad request
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Bad Request
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 400

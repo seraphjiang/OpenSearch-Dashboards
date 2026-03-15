@@ -1,0 +1,534 @@
+openapi: 3.0.3
+info:
+  version: v1
+  title: OpenSearch Dashboards Console API
+  contact:
+    name: OpenSearch Dashboards Team
+  description: |-
+    OpenAPI schema for OpenSearch Dashboards Console API
+
+    The Console plugin provides a developer tool for interacting with OpenSearch clusters.
+    It includes a proxy endpoint for forwarding requests to OpenSearch, API specification
+    definitions for autocomplete, and configuration retrieval.
+
+    ## Authentication and Authorization
+
+    The Console proxy forwards authentication headers from the OpenSearch Dashboards session
+    to the OpenSearch cluster. When using multi-data-source functionality, authentication
+    is handled through the data source configuration rather than forwarded headers.
+
+    ## Security Considerations
+
+    - The proxy route is protected by path filters to prevent unauthorized access to OpenSearch endpoints
+    - Authentication credentials are forwarded transparently from the client session
+    - For SigV4 authentication with data sources, proxy headers are not forwarded to prevent signature validation failures
+
+tags:
+  - name: console-proxy
+    description: Proxy requests to OpenSearch clusters with authentication forwarding
+  - name: console-config
+    description: Retrieve OpenSearch connection configuration
+  - name: console-specs
+    description: API specification definitions for Console autocomplete
+
+servers:
+  - url: http://localhost:5601
+
+paths:
+  /api/console/proxy:
+    post:
+      tags:
+        - console-proxy
+      summary: Proxy HTTP requests to OpenSearch cluster
+      description: |-
+        Acts as a pass-through proxy to forward HTTP requests from the Console UI to the
+        configured OpenSearch cluster. This endpoint handles all HTTP methods (GET, POST,
+        PUT, DELETE, PATCH, HEAD) and forwards them to the OpenSearch cluster.
+
+        **Authentication Forwarding:**
+        - When connecting to the default cluster (no dataSourceId), authentication headers
+          from the current user session are automatically forwarded to OpenSearch
+        - When using a specific data source (with dataSourceId), authentication is handled
+          through the data source configuration
+        - The endpoint respects path filters configured in opensearch_dashboards.yml to
+          restrict which OpenSearch paths can be accessed
+
+        **Request Processing:**
+        - Request body is streamed to support large payloads
+        - Pretty-printing is automatically enabled for responses (pretty=true parameter)
+        - BigInt values in JSON responses are handled correctly to prevent data loss
+        - Forwarding headers (x-forwarded-for, x-forwarded-port, x-forwarded-proto,
+          x-forwarded-host) are included when not using data sources
+
+        **Security Notes:**
+        - Access requires 'access:console' privilege
+        - Path filters prevent access to restricted OpenSearch endpoints
+        - SigV4 authentication with data sources does not support proxy headers
+      operationId: proxyToOpenSearch
+      parameters:
+        - name: method
+          in: query
+          required: true
+          description: HTTP method to use for the OpenSearch request
+          schema:
+            type: string
+            enum:
+              - HEAD
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
+          example: GET
+        - name: path
+          in: query
+          required: true
+          description: |-
+            The OpenSearch API path to call (e.g., /_search, /my-index/_doc/1).
+            Must pass path filters configured in opensearch_dashboards.yml.
+          schema:
+            type: string
+            minLength: 1
+          example: /_search
+        - name: dataSourceId
+          in: query
+          required: false
+          description: |-
+            Optional data source ID to use for multi-data-source requests.
+            When provided, the request is routed to the specified data source
+            instead of the default OpenSearch cluster.
+          schema:
+            type: string
+          example: f7b3e140-1a2b-3c4d-5e6f-7890abcdef12
+      requestBody:
+        description: |-
+          The request body to send to OpenSearch. Can be any valid payload for the
+          target OpenSearch API (JSON, NDJSON, binary data, etc.). The body is
+          streamed and not parsed by the proxy.
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              description: JSON request body for OpenSearch API
+            examples:
+              searchQuery:
+                summary: Search query with match_all
+                value:
+                  query:
+                    match_all: {}
+                  size: 10
+              bulkRequest:
+                summary: Bulk indexing request
+                value: |-
+                  {"index":{"_index":"test-index","_id":"1"}}
+                  {"field1":"value1","field2":"value2"}
+                  {"index":{"_index":"test-index","_id":"2"}}
+                  {"field1":"value3","field2":"value4"}
+          application/x-ndjson:
+            schema:
+              type: string
+              description: Newline-delimited JSON for bulk operations
+          text/plain:
+            schema:
+              type: string
+              description: Plain text request body
+      responses:
+        '200':
+          description: |-
+            Successful response from OpenSearch. The response body contains the
+            data returned by the OpenSearch cluster, with pretty-printing enabled.
+            For HEAD requests, returns status code with brief text description.
+          content:
+            application/json:
+              schema:
+                type: object
+                description: |-
+                  JSON response from OpenSearch. The exact structure depends on
+                  the OpenSearch API being called. BigInt values are properly
+                  serialized to prevent data loss.
+              examples:
+                searchResponse:
+                  summary: Search response with hits
+                  value:
+                    took: 5
+                    timed_out: false
+                    _shards:
+                      total: 1
+                      successful: 1
+                      skipped: 0
+                      failed: 0
+                    hits:
+                      total:
+                        value: 2
+                        relation: eq
+                      max_score: 1.0
+                      hits:
+                        - _index: test-index
+                          _id: "1"
+                          _score: 1.0
+                          _source:
+                            field1: value1
+                            field2: value2
+                clusterHealth:
+                  summary: Cluster health response
+                  value:
+                    cluster_name: opensearch-cluster
+                    status: green
+                    timed_out: false
+                    number_of_nodes: 3
+                    number_of_data_nodes: 3
+                    active_primary_shards: 10
+                    active_shards: 20
+                    relocating_shards: 0
+                    initializing_shards: 0
+                    unassigned_shards: 0
+            text/plain:
+              schema:
+                type: string
+              example: "200 - OK"
+          headers:
+            warning:
+              description: OpenSearch deprecation warnings, if any
+              schema:
+                type: string
+        '400':
+          description: Bad request - invalid query parameters or request format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                statusCode: 400
+                error: Bad Request
+                message: "Method must be one of, case insensitive ['HEAD', 'GET', 'PATCH', 'POST', 'PUT', 'DELETE']. Received 'INVALID'."
+        '403':
+          description: |-
+            Forbidden - the requested path is blocked by path filters configured
+            in opensearch_dashboards.yml
+          content:
+            text/plain:
+              schema:
+                type: string
+              example: "Error connecting to '/_cluster/settings':\n\nUnable to send requests to that path."
+        '404':
+          description: Not found - the OpenSearch resource does not exist
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                statusCode: 404
+                error: Not Found
+                message: "index_not_found_exception: no such index [missing-index]"
+        '502':
+          description: |-
+            Bad Gateway - error communicating with OpenSearch cluster or the
+            OpenSearch cluster returned an error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                statusCode: 502
+                error: Bad Gateway
+                message: "connect ECONNREFUSED 127.0.0.1:9200"
+      security:
+        - consoleAccess: []
+
+  /api/console/opensearch_config:
+    get:
+      tags:
+        - console-config
+      summary: Retrieve OpenSearch connection configuration
+      description: |-
+        Returns the OpenSearch host configuration that Console uses to connect
+        to the cluster. This endpoint provides the first host in the configured
+        hosts array, which is used by the "Copy as cURL" feature in the Console
+        UI to generate complete URLs.
+
+        **Use Cases:**
+        - Powering the "Copy as cURL" functionality in Console
+        - Determining which OpenSearch host the dashboard is connected to
+        - Client-side URL construction for Console requests
+      operationId: getOpenSearchConfig
+      responses:
+        '200':
+          description: Successfully retrieved OpenSearch configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OpenSearchConfigResponse'
+              examples:
+                localHost:
+                  summary: Local OpenSearch instance
+                  value:
+                    host: http://localhost:9200
+                remoteHost:
+                  summary: Remote OpenSearch cluster
+                  value:
+                    host: https://opensearch.example.com:9200
+                noHost:
+                  summary: No host configured (edge case)
+                  value:
+                    host: null
+        '500':
+          description: Internal server error retrieving configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/console/api_server:
+    get:
+      tags:
+        - console-specs
+      summary: Retrieve OpenSearch API specification definitions (GET)
+      description: |-
+        Returns the complete OpenSearch API specification used by Console for
+        autocomplete and validation. The specification includes endpoint definitions,
+        parameter schemas, and global settings.
+
+        **Specification Structure:**
+        - `opensearch.name`: Name/version of the specification
+        - `opensearch.globals`: Global parameters applicable to all endpoints
+        - `opensearch.endpoints`: Detailed definitions for each OpenSearch API endpoint
+
+        **Use Cases:**
+        - Powering autocomplete in the Console editor
+        - Validating API requests before sending to OpenSearch
+        - Displaying API documentation in the UI
+        - Supporting intelligent code completion
+
+        Note: Both GET and POST methods are supported for this endpoint with
+        identical responses. POST support exists for historical reasons.
+      operationId: getApiSpecDefinitions
+      responses:
+        '200':
+          description: Successfully retrieved API specification definitions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpecDefinitionsResponse'
+              example:
+                opensearch:
+                  name: OpenSearch 2.x
+                  globals:
+                    pretty:
+                      type: boolean
+                      description: Pretty format the returned JSON response
+                    human:
+                      type: boolean
+                      description: Return human readable values for statistics
+                    filter_path:
+                      type: string
+                      description: Comma-separated list of filters to reduce response
+                  endpoints:
+                    _search:
+                      methods:
+                        - GET
+                        - POST
+                      patterns:
+                        - /_search
+                        - /{index}/_search
+                      documentation: https://opensearch.org/docs/latest/api-reference/search/
+                      data_autocomplete_rules:
+                        query:
+                          match_all: {}
+                          match:
+                            __template:
+                              FIELD: TEXT
+                          term:
+                            __template:
+                              FIELD: VALUE
+                    _bulk:
+                      methods:
+                        - POST
+                        - PUT
+                      patterns:
+                        - /_bulk
+                        - /{index}/_bulk
+                      documentation: https://opensearch.org/docs/latest/api-reference/document-apis/bulk/
+                      data_autocomplete_rules:
+                        index:
+                          _index: INDEX
+                          _id: ID
+        '500':
+          description: Internal server error retrieving specifications
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - console-specs
+      summary: Retrieve OpenSearch API specification definitions (POST)
+      description: |-
+        Returns the complete OpenSearch API specification used by Console for
+        autocomplete and validation. This POST endpoint is functionally identical
+        to the GET version and exists for backward compatibility.
+
+        See the GET /api/console/api_server endpoint documentation for complete
+        details on the specification structure and use cases.
+      operationId: getApiSpecDefinitionsPost
+      responses:
+        '200':
+          description: Successfully retrieved API specification definitions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpecDefinitionsResponse'
+        '500':
+          description: Internal server error retrieving specifications
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    OpenSearchConfigResponse:
+      type: object
+      description: |-
+        OpenSearch connection configuration used by Console. Contains the first
+        host from the opensearch.hosts configuration array.
+      properties:
+        host:
+          type: string
+          format: uri
+          nullable: true
+          description: |-
+            The first host in the hosts array that OpenSearch Dashboards is
+            configured to use to communicate with OpenSearch. Used by the
+            "Copy as cURL" functionality to complete the host portion of URLs.
+            May be null if no hosts are configured.
+          example: http://localhost:9200
+
+    SpecDefinitionsResponse:
+      type: object
+      required:
+        - opensearch
+      description: |-
+        Complete API specification definitions for OpenSearch endpoints,
+        including autocomplete rules and parameter schemas.
+      properties:
+        opensearch:
+          type: object
+          required:
+            - name
+            - globals
+            - endpoints
+          properties:
+            name:
+              type: string
+              description: Name and version identifier for the specification
+              example: OpenSearch 2.x
+            globals:
+              type: object
+              description: |-
+                Global query parameters that can be applied to any OpenSearch
+                API request (e.g., pretty, human, filter_path)
+              additionalProperties:
+                type: object
+                properties:
+                  type:
+                    type: string
+                  description:
+                    type: string
+              example:
+                pretty:
+                  type: boolean
+                  description: Pretty format the returned JSON response
+                human:
+                  type: boolean
+                  description: Return human readable values for statistics
+            endpoints:
+              type: object
+              description: |-
+                Detailed definitions for each OpenSearch API endpoint, including
+                HTTP methods, URL patterns, and request/response schemas
+              additionalProperties:
+                type: object
+                properties:
+                  methods:
+                    type: array
+                    items:
+                      type: string
+                    description: Allowed HTTP methods for this endpoint
+                  patterns:
+                    type: array
+                    items:
+                      type: string
+                    description: URL patterns for this endpoint
+                  documentation:
+                    type: string
+                    format: uri
+                    description: Link to official documentation
+                  data_autocomplete_rules:
+                    type: object
+                    description: Rules for request body autocomplete
+              example:
+                _search:
+                  methods:
+                    - GET
+                    - POST
+                  patterns:
+                    - /_search
+                    - /{index}/_search
+                  documentation: https://opensearch.org/docs/latest/api-reference/search/
+
+    ErrorResponse:
+      type: object
+      required:
+        - statusCode
+        - error
+        - message
+      description: Standard error response format for Console API endpoints
+      properties:
+        statusCode:
+          type: integer
+          description: HTTP status code of the error
+          example: 502
+        error:
+          type: string
+          description: Error type/category
+          example: Bad Gateway
+        message:
+          type: string
+          description: Detailed error message explaining what went wrong
+          example: "connect ECONNREFUSED 127.0.0.1:9200"
+        attributes:
+          type: object
+          description: |-
+            Optional additional error attributes, such as validation details
+            or OpenSearch error metadata
+          additionalProperties: true
+
+    400_bad_request:
+      title: Bad request
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Bad Request
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 400
+
+  securitySchemes:
+    consoleAccess:
+      type: apiKey
+      in: header
+      name: Authorization
+      description: |-
+        Requires 'access:console' privilege. Authentication is handled through
+        OpenSearch Dashboards session cookies or authentication headers.

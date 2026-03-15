@@ -1,0 +1,338 @@
+openapi: 3.0.3
+info:
+  version: v1
+  title: OpenSearch Dashboards Usage Collection API
+  contact:
+    name: OpenSearch Dashboards Team
+  description: |-
+    OpenAPI schema for OpenSearch Dashboards Usage Collection API.
+
+    This plugin collects usage metrics and statistics from OpenSearch Dashboards, including UI interactions, application usage, and cluster statistics.
+tags:
+  - name: usage collection
+    description: Collect and report usage metrics, UI statistics, and application telemetry
+servers:
+  - url: http://localhost:5601
+components:
+  schemas:
+    400_bad_request:
+      title: Bad request
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Bad Request
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 400
+    503_service_unavailable:
+      title: Service unavailable
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Service Unavailable
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 503
+    UiMetricReport:
+      type: object
+      required:
+        - report
+      properties:
+        report:
+          type: object
+          properties:
+            reportVersion:
+              type: integer
+              enum:
+                - 1
+              description: Version of the report format
+            userAgent:
+              type: object
+              additionalProperties:
+                type: object
+                properties:
+                  key:
+                    type: string
+                  type:
+                    type: string
+                  appName:
+                    type: string
+                  userAgent:
+                    type: string
+              description: User agent information for different sessions
+            uiStatsMetrics:
+              type: object
+              additionalProperties:
+                type: object
+                properties:
+                  key:
+                    type: string
+                  type:
+                    type: string
+                    enum:
+                      - click
+                      - loaded
+                      - count
+                    description: Type of metric
+                  appName:
+                    type: string
+                  eventName:
+                    type: string
+                  stats:
+                    type: object
+                    properties:
+                      min:
+                        type: number
+                      sum:
+                        type: number
+                      max:
+                        type: number
+                      avg:
+                        type: number
+              description: UI statistics metrics
+            application_usage:
+              type: object
+              additionalProperties:
+                type: object
+                properties:
+                  minutesOnScreen:
+                    type: number
+                    description: Time spent in the application in minutes
+                  numberOfClicks:
+                    type: number
+                    description: Number of clicks in the application
+              description: Application usage statistics
+    StatsResponse:
+      type: object
+      properties:
+        opensearch_dashboards:
+          type: object
+          properties:
+            uuid:
+              type: string
+              description: OpenSearch Dashboards instance UUID
+            name:
+              type: string
+              description: Server name
+            index:
+              type: string
+              description: OpenSearch Dashboards index name
+            host:
+              type: string
+              description: Server hostname
+            locale:
+              type: string
+              description: Locale setting
+            transport_address:
+              type: string
+              description: Transport address (host:port)
+            version:
+              type: string
+              description: OpenSearch Dashboards version
+            snapshot:
+              type: boolean
+              description: Whether this is a snapshot build
+            status:
+              type: string
+              enum:
+                - green
+                - yellow
+                - red
+              description: Overall status of OpenSearch Dashboards
+        last_updated:
+          type: string
+          format: date-time
+          description: Timestamp of last metrics collection
+        collection_interval_in_millis:
+          type: integer
+          description: Metrics collection interval in milliseconds
+        usage:
+          type: object
+          description: Usage data collected from all collectors (only included with extended=true)
+        cluster_uuid:
+          type: string
+          description: OpenSearch cluster UUID (only included with extended=true)
+paths:
+  /api/ui_metric/report:
+    post:
+      tags:
+        - usage collection
+      summary: Report UI metrics and application usage
+      operationId: reportUiMetrics
+      description: |-
+        Submit UI metrics, user agent information, and application usage data.
+        Reports are batched server-side and persisted at configurable intervals.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UiMetricReport'
+            examples:
+              basicReport:
+                summary: Basic UI metrics report
+                value:
+                  report:
+                    reportVersion: 1
+                    userAgent:
+                      session_123:
+                        key: session_123
+                        type: ui-metric
+                        appName: discover
+                        userAgent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)
+                    uiStatsMetrics:
+                      discover:click:search_button:
+                        key: discover:click:search_button
+                        type: click
+                        appName: discover
+                        eventName: search_button
+                        stats:
+                          min: 1
+                          sum: 5
+                          max: 1
+                          avg: 1
+                    application_usage:
+                      discover:
+                        minutesOnScreen: 15.5
+                        numberOfClicks: 42
+      responses:
+        '200':
+          description: Metrics report accepted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                      - ok
+                      - fail
+              examples:
+                success:
+                  value:
+                    status: ok
+                failure:
+                  value:
+                    status: fail
+  /api/stats:
+    get:
+      tags:
+        - usage collection
+      summary: Get OpenSearch Dashboards statistics
+      operationId: getStats
+      description: |-
+        Retrieve operational statistics and optionally extended usage data.
+        This endpoint can be accessed anonymously if configured.
+      parameters:
+        - in: query
+          name: extended
+          description: Include extended statistics with usage data from all collectors
+          schema:
+            oneOf:
+              - type: string
+                enum:
+                  - ''
+              - type: boolean
+            default: false
+          examples:
+            enabled:
+              value: true
+            emptyString:
+              value: ''
+        - in: query
+          name: legacy
+          description: Format extended statistics in legacy format (for backwards compatibility)
+          schema:
+            oneOf:
+              - type: string
+                enum:
+                  - ''
+              - type: boolean
+            default: false
+        - in: query
+          name: exclude_usage
+          description: Exclude usage data from extended statistics (reduces response time)
+          schema:
+            oneOf:
+              - type: string
+                enum:
+                  - ''
+              - type: boolean
+            default: false
+      responses:
+        '200':
+          description: Statistics retrieved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatsResponse'
+              examples:
+                basicStats:
+                  summary: Basic statistics without extended usage
+                  value:
+                    opensearch_dashboards:
+                      uuid: 5b2de169-2785-441b-ae8c-186a1936b17d
+                      name: my-opensearch-dashboards
+                      index: .opensearch_dashboards
+                      host: localhost
+                      locale: en
+                      transport_address: localhost:5601
+                      version: 2.12.0
+                      snapshot: false
+                      status: green
+                    last_updated: '2024-03-14T10:30:00.000Z'
+                    collection_interval_in_millis: 5000
+                extendedStats:
+                  summary: Extended statistics with usage data
+                  value:
+                    opensearch_dashboards:
+                      uuid: 5b2de169-2785-441b-ae8c-186a1936b17d
+                      name: my-opensearch-dashboards
+                      index: .opensearch_dashboards
+                      host: localhost
+                      locale: en
+                      transport_address: localhost:5601
+                      version: 2.12.0
+                      snapshot: false
+                      status: green
+                    last_updated: '2024-03-14T10:30:00.000Z'
+                    collection_interval_in_millis: 5000
+                    usage:
+                      opensearchDashboards:
+                        index: .opensearch_dashboards
+                        plugins:
+                          enabled: true
+                      discover:
+                        total: 100
+                    cluster_uuid: abc123-456-789
+        '503':
+          description: Statistics not ready yet (collectors still initializing)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/503_service_unavailable'
+              examples:
+                notReady:
+                  value:
+                    error: Service Unavailable
+                    message: Stats are not ready yet. Please try again later.
+                    statusCode: 503

@@ -1,0 +1,688 @@
+openapi: 3.0.3
+info:
+  version: v1
+  title: OpenSearch Dashboards Query Enhancements API
+  contact:
+    name: OpenSearch Dashboards Team
+  description: |-
+    OpenAPI schema for OpenSearch Dashboards Query Enhancements API.
+
+    This API provides enhanced query capabilities including:
+    - Query assist with AI-powered language support (PPL, SQL, PromQL)
+    - Data source connection management
+    - Async query job management
+    - Remote cluster configuration
+    - Resource management for Prometheus and other data sources
+tags:
+  - name: query-enhancements
+    description: Enhanced query search strategies and AI-assisted query generation
+  - name: query-assist
+    description: AI-powered query assistance for multiple query languages
+  - name: data-source-connections
+    description: Manage data source connections and async query jobs
+  - name: resources
+    description: Manage resources for Prometheus and other external data sources
+servers:
+  - url: http://localhost:5601
+paths:
+  /api/enhancements/search/{strategy}:
+    post:
+      tags:
+        - query-enhancements
+      summary: Execute a search using a specific query strategy
+      description: |-
+        Executes a search query using the specified strategy (ppl, pplraw, promql, sql, sqlasync, pplasync).
+        This endpoint supports multiple query languages and formats for enhanced data exploration.
+      operationId: executeSearchStrategy
+      parameters:
+        - name: strategy
+          in: path
+          description: The search strategy to use (ppl, pplraw, promql, sql, sqlasync, pplasync)
+          required: true
+          schema:
+            type: string
+            enum:
+              - ppl
+              - pplraw
+              - promql
+              - sql
+              - sqlasync
+              - pplasync
+          example: ppl
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: object
+                  required:
+                    - query
+                    - language
+                    - format
+                  properties:
+                    query:
+                      type: string
+                      description: The query string to execute
+                      example: "source=my_index | where status='active'"
+                    language:
+                      type: string
+                      description: The query language
+                      example: ppl
+                    dataset:
+                      type: object
+                      nullable: true
+                      description: Optional dataset information
+                      properties:
+                        id:
+                          type: string
+                        title:
+                          type: string
+                    format:
+                      type: string
+                      description: The response format
+                      example: json
+                aggConfig:
+                  type: object
+                  nullable: true
+                  description: Optional aggregation configuration (experimental)
+                pollQueryResultsParams:
+                  type: object
+                  description: Parameters for polling async query results
+                  properties:
+                    queryId:
+                      type: string
+                    sessionId:
+                      type: string
+                timeRange:
+                  type: object
+                  description: Optional time range filter
+                options:
+                  type: object
+                  description: Additional query options
+            examples:
+              pplQuery:
+                summary: PPL query example
+                value:
+                  query:
+                    query: "source=my_index | where status='active' | stats count() by region"
+                    language: ppl
+                    dataset:
+                      id: my_dataset_id
+                      title: My Dataset
+                    format: json
+              sqlQuery:
+                summary: SQL query example
+                value:
+                  query:
+                    query: "SELECT * FROM my_index WHERE status='active'"
+                    language: sql
+                    format: json
+      responses:
+        '200':
+          description: Search executed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                description: The data frame response containing query results
+        '400':
+          description: Bad request - invalid query syntax or parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/400_bad_request'
+        '503':
+          description: Service unavailable - dependency service error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+  /api/enhancements/assist/languages:
+    get:
+      tags:
+        - query-assist
+      summary: Get list of configured query assist languages
+      description: |-
+        Returns the list of query languages that are properly configured with ML agents.
+        Supported languages include PPL, SQL, and PromQL depending on agent configuration.
+      operationId: getConfiguredLanguages
+      parameters:
+        - name: dataSourceId
+          in: query
+          description: Optional data source ID to check language support for a specific data source
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of configured languages retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  configuredLanguages:
+                    type: array
+                    items:
+                      type: string
+                      enum:
+                        - PPL
+                        - SQL
+                        - PROMQL
+                    description: Array of configured query languages
+                  error:
+                    type: string
+                    description: Error message if any language check failed
+              examples:
+                success:
+                  summary: Successful response
+                  value:
+                    configuredLanguages: ["PPL", "SQL", "PROMQL"]
+  /api/enhancements/assist/generate:
+    post:
+      tags:
+        - query-assist
+      summary: Generate a query using AI assistance
+      description: |-
+        Uses ML agents to generate a query from a natural language question.
+        Supports time range inference and multiple query languages.
+      operationId: generateQuery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - index
+                - question
+                - language
+              properties:
+                index:
+                  type: string
+                  description: The index pattern to query against
+                  example: my-index-pattern
+                question:
+                  type: string
+                  description: Natural language question to convert to a query
+                  example: "Show me all active users from the last 24 hours"
+                language:
+                  type: string
+                  description: Target query language
+                  enum:
+                    - PPL
+                    - SQL
+                    - PROMQL
+                  example: PPL
+                dataSourceId:
+                  type: string
+                  description: Optional data source ID
+                currentTime:
+                  type: string
+                  nullable: true
+                  description: Current timestamp for time-based query context (ISO format)
+                  example: "2024-03-14T10:30:00Z"
+                timeField:
+                  type: string
+                  nullable: true
+                  description: The time field used in the index pattern
+                  example: "@timestamp"
+            examples:
+              pplRequest:
+                summary: Generate PPL query
+                value:
+                  index: "logs-*"
+                  question: "Show me error logs from the last hour"
+                  language: "PPL"
+                  currentTime: "2024-03-14T10:30:00Z"
+                  timeField: "@timestamp"
+      responses:
+        '200':
+          description: Query generated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  query:
+                    type: string
+                    description: The generated query
+                  timeRange:
+                    type: object
+                    nullable: true
+                    description: Inferred time range
+                    properties:
+                      from:
+                        type: string
+                        description: Start time (ISO format or relative)
+                      to:
+                        type: string
+                        description: End time (ISO format or relative)
+              examples:
+                success:
+                  summary: Successful query generation
+                  value:
+                    query: "source=logs-* | where level='error'"
+                    timeRange:
+                      from: "now-1h"
+                      to: "now"
+        '400':
+          description: Bad request - unsupported language or guardrails triggered
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/components/schemas/400_bad_request'
+                  - type: object
+                    properties:
+                      body:
+                        type: string
+                        enum:
+                          - guardrails triggered
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+  /api/enhancements/connections/{id}:
+    get:
+      tags:
+        - data-source-connections
+      summary: Get data source connections
+      description: |-
+        Retrieves available data connections (e.g., S3, Prometheus) from OpenSearch.
+        Returns an empty array if the data connections plugin is not available.
+      operationId: getDataSourceConnections
+      parameters:
+        - name: id
+          in: path
+          description: Optional data source ID
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Data connections retrieved successfully
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: array
+                    items:
+                      type: object
+                    description: Array of data connection objects
+                  - type: array
+                    items: {}
+                    description: Empty array if no connections or plugin not available
+        '503':
+          description: Service unavailable - OpenSearch service error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+  /api/enhancements/jobs:
+    get:
+      tags:
+        - data-source-connections
+      summary: Get async query job status
+      description: Retrieves the status of an asynchronous query job
+      operationId: getAsyncJobStatus
+      parameters:
+        - name: id
+          in: query
+          required: true
+          description: Data source ID
+          schema:
+            type: string
+        - name: queryId
+          in: query
+          required: true
+          description: Query ID to check status for
+          schema:
+            type: string
+            nullable: true
+      responses:
+        '200':
+          description: Job status retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Job status information
+        '503':
+          description: Service unavailable - OpenSearch service error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+    post:
+      tags:
+        - data-source-connections
+      summary: Run a direct query asynchronously
+      description: Submits a direct query to run asynchronously on the specified data source
+      operationId: runAsyncQuery
+      parameters:
+        - name: id
+          in: query
+          required: true
+          description: Data source ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+                - datasource
+                - lang
+              properties:
+                query:
+                  type: string
+                  description: The query to execute
+                  example: "SELECT * FROM my_table"
+                datasource:
+                  type: string
+                  description: The datasource name
+                  example: my_s3_datasource
+                lang:
+                  type: string
+                  description: Query language
+                  example: sql
+                sessionId:
+                  type: string
+                  nullable: true
+                  description: Optional session ID for query correlation
+            examples:
+              sqlQuery:
+                summary: Run SQL query on S3 datasource
+                value:
+                  query: "SELECT * FROM my_table LIMIT 100"
+                  datasource: "my_s3_datasource"
+                  lang: "sql"
+                  sessionId: null
+      responses:
+        '200':
+          description: Query submitted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Query submission response with job ID
+        '503':
+          description: Service unavailable - OpenSearch service error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+    delete:
+      tags:
+        - data-source-connections
+      summary: Delete an async query job
+      description: Deletes (cancels) an asynchronous query job
+      operationId: deleteAsyncJob
+      parameters:
+        - name: id
+          in: query
+          required: true
+          description: Data source ID
+          schema:
+            type: string
+        - name: queryId
+          in: query
+          required: true
+          description: Query ID to delete
+          schema:
+            type: string
+            nullable: true
+      responses:
+        '204':
+          description: Job deleted successfully
+        '503':
+          description: Service unavailable - OpenSearch service error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+  /api/enhancements/remote_cluster/list:
+    get:
+      tags:
+        - data-source-connections
+      summary: List remote cluster connections (experimental)
+      description: |-
+        Retrieves information about configured remote cluster connections.
+        This API is experimental and might change in future releases.
+      operationId: listRemoteClusters
+      parameters:
+        - name: dataSourceId
+          in: query
+          description: Optional data source ID
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Remote clusters retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    connectionAlias:
+                      type: string
+                      description: The connection alias for the remote cluster
+              examples:
+                success:
+                  summary: Remote clusters list
+                  value:
+                    - connectionAlias: remote-cluster-1
+                      connected: true
+                      mode: proxy
+        '405':
+          description: Method not allowed - remote cluster feature not enabled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+  /api/enhancements/remote_cluster/indexes:
+    get:
+      tags:
+        - data-source-connections
+      summary: List indexes in a remote cluster (experimental)
+      description: |-
+        Retrieves indexes from a specific remote cluster connection.
+        This API is experimental and might change in future releases.
+      operationId: listRemoteClusterIndexes
+      parameters:
+        - name: dataSourceId
+          in: query
+          description: Optional data source ID
+          required: false
+          schema:
+            type: string
+        - name: connectionAlias
+          in: query
+          description: The connection alias of the remote cluster
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Remote cluster indexes retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  description: Index name
+              examples:
+                success:
+                  summary: Remote cluster indexes
+                  value:
+                    - "remote-cluster-1:my-index-1"
+                    - "remote-cluster-1:my-index-2"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+  /api/enhancements/resources:
+    post:
+      tags:
+        - resources
+      summary: Manage resources for external data sources (experimental)
+      description: |-
+        Handles resource requests for Prometheus and other external data sources.
+        Supports operations like fetching labels, metrics, series data, alerts, and rules.
+        This API is experimental and might change in future releases.
+      operationId: manageResources
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - connection
+                - resource
+              properties:
+                connection:
+                  type: object
+                  required:
+                    - id
+                    - type
+                  properties:
+                    id:
+                      type: string
+                      description: Connection ID
+                    type:
+                      type: string
+                      description: Connection type (e.g., prometheus)
+                resource:
+                  type: object
+                  required:
+                    - type
+                  properties:
+                    name:
+                      type: string
+                      description: Optional resource name
+                    type:
+                      type: string
+                      description: Resource type (labels, metrics, series, alerts, etc.)
+                      enum:
+                        - labels
+                        - label_values
+                        - metrics
+                        - metric_metadata
+                        - series
+                        - alerts
+                        - alert_manager_alert_groups
+                        - rules
+                content:
+                  type: object
+                  description: Optional content for the resource request
+            examples:
+              prometheusLabels:
+                summary: Get Prometheus labels
+                value:
+                  connection:
+                    id: "my-prometheus-conn"
+                    type: "prometheus"
+                  resource:
+                    type: "labels"
+              prometheusMetrics:
+                summary: Get Prometheus metrics
+                value:
+                  connection:
+                    id: "my-prometheus-conn"
+                    type: "prometheus"
+                  resource:
+                    type: "metrics"
+      responses:
+        '200':
+          description: Resource request completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Resource data response
+        '404':
+          description: Resource manager not found for the specified connection type
+          content:
+            application/json:
+              schema:
+                type: object
+        '503':
+          description: Unable to get resources - service error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+components:
+  schemas:
+    400_bad_request:
+      title: Bad request
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Bad Request
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 400

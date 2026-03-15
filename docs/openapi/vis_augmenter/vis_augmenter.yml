@@ -1,0 +1,97 @@
+openapi: 3.0.3
+info:
+  version: v1
+  title: OpenSearch Dashboards Vis Augmenter API
+  contact:
+    name: OpenSearch Dashboards Team
+  description: |-
+    OpenAPI schema for OpenSearch Dashboards Vis Augmenter API. This plugin provides statistics about plugin augmentations applied to visualizations.
+tags:
+  - name: vis-augmenter
+    description: Retrieve statistics about visualization augmentations
+servers:
+  - url: http://localhost:5601
+components:
+  schemas:
+    AugmentVisStats:
+      type: object
+      description: Statistics about visualization augmentations
+      properties:
+        totalAugmentVisCount:
+          type: integer
+          description: Total number of augmented visualizations
+          example: 42
+        augmentVisCountByType:
+          type: object
+          description: Count of augmented visualizations by type
+          additionalProperties:
+            type: integer
+          example:
+            PointInTimeEvents: 15
+            AlertEvents: 27
+        augmentVisCountByPlugin:
+          type: object
+          description: Count of augmented visualizations by plugin
+          additionalProperties:
+            type: integer
+          example:
+            anomaly-detection-dashboards: 20
+            alerting-dashboards: 22
+    500_internal_server_error:
+      title: Internal server error
+      type: object
+      required:
+        - statusCode
+        - message
+      properties:
+        statusCode:
+          type: integer
+          enum:
+            - 500
+        message:
+          type: string
+        attributes:
+          type: object
+          properties:
+            error:
+              type: string
+paths:
+  /api/vis_augmenter/stats:
+    get:
+      tags:
+        - vis-augmenter
+      summary: Get statistics about visualization augmentations
+      operationId: getAugmentVisStats
+      description: Retrieves statistics about augmented visualizations, including total counts and breakdowns by type and plugin
+      responses:
+        '200':
+          description: Successfully retrieved augmentation statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AugmentVisStats'
+              examples:
+                statsResponse:
+                  summary: Example statistics response
+                  value:
+                    totalAugmentVisCount: 42
+                    augmentVisCountByType:
+                      PointInTimeEvents: 15
+                      AlertEvents: 27
+                    augmentVisCountByPlugin:
+                      anomaly-detection-dashboards: 20
+                      alerting-dashboards: 22
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/500_internal_server_error'
+              examples:
+                errorResponse:
+                  summary: Example error response
+                  value:
+                    statusCode: 500
+                    message: "Error retrieving augmentation statistics"
+                    attributes:
+                      error: "OpenSearch query failed"

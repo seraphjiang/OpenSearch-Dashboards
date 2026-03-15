@@ -1,0 +1,215 @@
+openapi: 3.0.3
+info:
+  version: v1
+  title: OpenSearch Dashboards Bfetch API
+  contact:
+    name: OpenSearch Dashboards Team
+  description: |-
+    OpenAPI schema for OpenSearch Dashboards Bfetch (Batch Fetch) API.
+
+    The Bfetch plugin provides infrastructure for batch processing and streaming responses.
+    It enables plugins to:
+    - Process multiple items in a batch with streaming results
+    - Stream responses using NDJSON format
+    - Handle long-running operations with chunked responses
+
+    Note: This plugin provides server-side infrastructure. Routes are dynamically registered
+    by other plugins using the bfetch service. Common usage patterns include:
+    - Batch search operations
+    - Streaming data queries
+    - Long-polling endpoints
+    - Server-sent events style responses
+tags:
+  - name: bfetch
+    description: Batch fetch and streaming response infrastructure
+servers:
+  - url: http://localhost:5601
+paths:
+  /{dynamicPath}:
+    post:
+      tags:
+        - bfetch
+      summary: Dynamic batch processing or streaming endpoint
+      description: |-
+        This is a placeholder for dynamically registered routes. The bfetch plugin provides
+        two main route registration methods:
+
+        1. **addBatchProcessingRoute**: For batch processing where each item in a batch is
+           processed independently and results are streamed back as NDJSON.
+
+        2. **addStreamingResponseRoute**: For custom streaming responses where plugins can
+           return an Observable that emits data chunks.
+
+        Routes registered via bfetch:
+        - Accept POST requests
+        - Return streaming NDJSON responses (application/x-ndjson)
+        - Support chunked transfer encoding
+        - Process items asynchronously
+
+        Common examples include:
+        - `/internal/bsearch` - Batch search endpoint used by the search service
+        - Custom plugin batch endpoints for processing multiple requests efficiently
+      operationId: dynamicBatchOrStreamingEndpoint
+      parameters:
+        - name: dynamicPath
+          in: path
+          description: The dynamically registered route path (set by consuming plugins)
+          required: true
+          schema:
+            type: string
+          example: internal/bsearch
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              oneOf:
+                - type: object
+                  description: Batch processing request format
+                  required:
+                    - batch
+                  properties:
+                    batch:
+                      type: array
+                      description: Array of items to process in batch
+                      items:
+                        type: object
+                        description: Individual batch item data
+                - type: object
+                  description: Streaming response request format (plugin-specific)
+            examples:
+              batchRequest:
+                summary: Example batch processing request
+                value:
+                  batch:
+                    - id: request1
+                      params:
+                        index: logs-*
+                        body:
+                          query:
+                            match_all: {}
+                    - id: request2
+                      params:
+                        index: metrics-*
+                        body:
+                          query:
+                            match_all: {}
+      responses:
+        '200':
+          description: Streaming response with NDJSON format
+          headers:
+            Content-Type:
+              schema:
+                type: string
+                enum:
+                  - application/x-ndjson
+              description: NDJSON streaming format
+            Connection:
+              schema:
+                type: string
+                enum:
+                  - keep-alive
+              description: Keep connection alive for streaming
+            Transfer-Encoding:
+              schema:
+                type: string
+                enum:
+                  - chunked
+              description: Chunked transfer encoding
+          content:
+            application/x-ndjson:
+              schema:
+                type: string
+                description: |-
+                  Newline-delimited JSON stream. Each line is a separate JSON object.
+
+                  For batch processing routes, each line contains:
+                  - id: The batch item ID
+                  - result: The successful result (if no error)
+                  - error: The error object (if processing failed)
+
+                  For streaming routes, the format depends on the plugin implementation.
+              examples:
+                batchSuccess:
+                  summary: Batch processing success response
+                  value: |
+                    {"id":0,"result":{"took":5,"hits":{"total":100,"hits":[]}}}
+                    {"id":1,"result":{"took":3,"hits":{"total":50,"hits":[]}}}
+                batchWithError:
+                  summary: Batch processing with partial errors
+                  value: |
+                    {"id":0,"result":{"took":5,"hits":{"total":100,"hits":[]}}}
+                    {"id":1,"error":{"message":"Index not found","statusCode":404}}
+                streamingData:
+                  summary: Custom streaming data
+                  value: |
+                    {"type":"data","value":{"count":10}}
+                    {"type":"data","value":{"count":20}}
+                    {"type":"complete"}
+        '400':
+          description: Bad request - invalid batch format or parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/400_bad_request'
+        '500':
+          description: Internal server error during batch processing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+components:
+  schemas:
+    400_bad_request:
+      title: Bad request
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Bad Request
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 400
+    BatchRequestData:
+      title: Batch request data
+      type: object
+      required:
+        - batch
+      properties:
+        batch:
+          type: array
+          description: Array of items to process
+          items:
+            type: object
+            description: Individual batch item (format defined by consuming plugin)
+    BatchResponseItem:
+      title: Batch response item
+      type: object
+      properties:
+        id:
+          type: integer
+          description: The index of the batch item
+        result:
+          type: object
+          description: The successful result (present if no error)
+        error:
+          type: object
+          description: Error information (present if processing failed)
+          properties:
+            message:
+              type: string
+              description: Error message
+            statusCode:
+              type: integer
+              description: HTTP status code

@@ -1,0 +1,666 @@
+openapi: 3.0.3
+info:
+  version: v1
+  title: "OpenSearch Dashboards Data Importer API"
+  contact:
+    name: OpenSearch Dashboards Team
+  description: "OpenAPI schema for OpenSearch Dashboards Data Importer API - Import data from files (CSV, JSON, NDJSON) into OpenSearch indexes"
+tags:
+  - name: data-importer
+    description: APIs for importing data from various file formats into OpenSearch indexes
+servers:
+  - url: http://localhost:5601
+paths:
+  /api/data_importer/_cat_indices:
+    get:
+      tags:
+        - data-importer
+      summary: List available OpenSearch indices
+      description: Retrieves a list of non-system indices (excluding indices starting with '.')
+      operationId: catIndices
+      parameters:
+        - name: dataSource
+          in: query
+          description: Data source ID when using multiple data sources
+          required: false
+          schema:
+            type: string
+            example: "d1f9b1a0-1234-5678-9abc-def012345678"
+      responses:
+        '200':
+          description: Successfully retrieved list of indices
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - indices
+                properties:
+                  indices:
+                    type: array
+                    items:
+                      type: string
+                    description: Array of index names
+                    example: ["my-index-1", "logs-2024", "products"]
+              examples:
+                successResponse:
+                  summary: List of available indices
+                  value:
+                    indices:
+                      - "opensearch_dashboards_sample_data_logs"
+                      - "opensearch_dashboards_sample_data_ecommerce"
+                      - "my-custom-index"
+        '404':
+          description: Data source not found or not enabled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    example: "Data source is not enabled or does not exist"
+        '500':
+          description: Internal server error when listing indices
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                    example: "Error when listing indices: [error details]"
+  /api/data_importer/_preview:
+    post:
+      tags:
+        - data-importer
+      summary: Preview file data and mappings before import
+      description: Upload a file to preview its contents and get predicted OpenSearch mappings. Returns sample documents and mapping suggestions.
+      operationId: previewFile
+      parameters:
+        - name: indexName
+          in: query
+          required: true
+          description: Target index name for the import
+          schema:
+            type: string
+            minLength: 1
+            example: "my-data-index"
+        - name: createMode
+          in: query
+          required: true
+          description: Whether to create a new index (true) or append to existing (false)
+          schema:
+            type: boolean
+            example: true
+        - name: fileExtension
+          in: query
+          required: true
+          description: File extension (csv, json, ndjson)
+          schema:
+            type: string
+            minLength: 1
+            enum:
+              - csv
+              - json
+              - ndjson
+            example: "csv"
+        - name: dataSource
+          in: query
+          required: false
+          description: Data source ID when using multiple data sources
+          schema:
+            type: string
+        - name: delimiter
+          in: query
+          required: false
+          description: Delimiter for CSV files (comma, semicolon, tab, or pipe)
+          schema:
+            type: string
+            enum:
+              - ","
+              - ";"
+              - "\t"
+              - "|"
+            example: ","
+        - name: previewCount
+          in: query
+          required: true
+          description: Number of documents to preview
+          schema:
+            type: integer
+            minimum: 1
+            example: 10
+      requestBody:
+        required: true
+        description: File to preview
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: File to preview (CSV, JSON, or NDJSON)
+      responses:
+        '200':
+          description: Successfully previewed file
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - predictedMapping
+                  - documents
+                properties:
+                  predictedMapping:
+                    type: object
+                    description: Predicted OpenSearch mapping for the data
+                    additionalProperties: true
+                  documents:
+                    type: array
+                    items:
+                      type: object
+                      additionalProperties: true
+                    description: Sample documents from the file
+                  existingMapping:
+                    type: object
+                    description: Existing index mapping (only present when createMode is false)
+                    additionalProperties: true
+              examples:
+                csvPreview:
+                  summary: CSV file preview
+                  value:
+                    predictedMapping:
+                      properties:
+                        name:
+                          type: text
+                        age:
+                          type: integer
+                        email:
+                          type: keyword
+                    documents:
+                      - name: "John Doe"
+                        age: 30
+                        email: "john@example.com"
+                      - name: "Jane Smith"
+                        age: 25
+                        email: "jane@example.com"
+        '400':
+          description: Bad request - invalid file format or parameters
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+              examples:
+                unsupportedFileType:
+                  summary: Unsupported file extension
+                  value:
+                    body: "xml is not a registered or supported filetype"
+                parsingError:
+                  summary: File parsing error
+                  value:
+                    body: "Error parsing file: Invalid JSON format"
+        '404':
+          description: Index not found or data source not enabled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+              examples:
+                indexNotFound:
+                  summary: Index does not exist
+                  value:
+                    body: "Index my-index does not exist"
+                dataSourceNotFound:
+                  summary: Data source not found
+                  value:
+                    body: "Data source is not enabled or does not exist"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+                example:
+                  body: "Error determining mapping: [error details]"
+  /api/data_importer/_import_file:
+    post:
+      tags:
+        - data-importer
+      summary: Import data from a file into an OpenSearch index
+      description: Upload and import a file (CSV, JSON, or NDJSON) into an OpenSearch index. Can create a new index or append to an existing one. Supports filtered aliases via import identifiers.
+      operationId: importFile
+      parameters:
+        - name: indexName
+          in: query
+          required: true
+          description: Target index name for the import
+          schema:
+            type: string
+            minLength: 1
+            example: "my-data-index"
+        - name: createMode
+          in: query
+          required: true
+          description: Whether to create a new index (true) or append to existing (false)
+          schema:
+            type: boolean
+            example: true
+        - name: fileExtension
+          in: query
+          required: true
+          description: File extension (csv, json, ndjson)
+          schema:
+            type: string
+            minLength: 1
+            enum:
+              - csv
+              - json
+              - ndjson
+            example: "csv"
+        - name: dataSource
+          in: query
+          required: false
+          description: Data source ID when using multiple data sources
+          schema:
+            type: string
+        - name: delimiter
+          in: query
+          required: false
+          description: Delimiter for CSV files (comma, semicolon, tab, or pipe)
+          schema:
+            type: string
+            enum:
+              - ","
+              - ";"
+              - "\t"
+              - "|"
+            example: ","
+        - name: importIdentifier
+          in: query
+          required: false
+          description: Alphanumeric identifier for creating a filtered alias. Must contain only letters, numbers, hyphens, and underscores.
+          schema:
+            type: string
+            pattern: '^[a-zA-Z0-9_-]+$'
+            example: "import_batch_001"
+      requestBody:
+        required: true
+        description: File to import and optional mapping
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - file
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: File to import (CSV, JSON, or NDJSON)
+                mapping:
+                  type: string
+                  description: JSON string containing OpenSearch mapping (only used when createMode is true)
+                  example: '{"properties":{"name":{"type":"text"},"age":{"type":"integer"}}}'
+      responses:
+        '200':
+          description: File import completed
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                  - success
+                properties:
+                  message:
+                    type: object
+                    properties:
+                      totalRows:
+                        type: integer
+                        description: Total number of rows processed
+                      successfulRows:
+                        type: integer
+                        description: Number of successfully imported rows
+                      failedRows:
+                        type: array
+                        items:
+                          type: object
+                        description: Array of failed row details
+                  success:
+                    type: boolean
+                    description: Whether all rows were successfully imported
+              examples:
+                successfulImport:
+                  summary: All rows imported successfully
+                  value:
+                    message:
+                      totalRows: 100
+                      successfulRows: 100
+                      failedRows: []
+                    success: true
+                partialFailure:
+                  summary: Some rows failed to import
+                  value:
+                    message:
+                      totalRows: 100
+                      successfulRows: 95
+                      failedRows:
+                        - row: 23
+                          error: "Mapping conflict"
+                        - row: 67
+                          error: "Invalid date format"
+                    success: false
+        '400':
+          description: Bad request - invalid parameters, file already exists, or mapping error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+              examples:
+                indexExists:
+                  summary: Index already exists in create mode
+                  value:
+                    body: "Index my-data-index already exists"
+                invalidMapping:
+                  summary: Invalid mapping JSON
+                  value:
+                    body: "Invalid mapping JSON: Unexpected token"
+                unsupportedFileType:
+                  summary: Unsupported file type
+                  value:
+                    body: "xml is not a registered or supported filetype"
+        '404':
+          description: Index not found or data source not enabled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+              examples:
+                indexNotFound:
+                  summary: Index does not exist (append mode)
+                  value:
+                    body: "Index my-index does not exist"
+                dataSourceNotFound:
+                  summary: Data source not found
+                  value:
+                    body: "Data source is not enabled or does not exist"
+        '500':
+          description: Internal server error during import
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+              examples:
+                indexCreationError:
+                  summary: Failed to create index
+                  value:
+                    body: "Error creating index: [error details]"
+                ingestionError:
+                  summary: Failed during data ingestion
+                  value:
+                    body: "Error ingesting file: [error details]"
+  /api/data_importer/_import_text:
+    post:
+      tags:
+        - data-importer
+      summary: Import data from text/string into an OpenSearch index
+      description: Import data directly from a text string (CSV, JSON, or NDJSON format) into an OpenSearch index without uploading a file. Supports filtered aliases via import identifiers.
+      operationId: importText
+      parameters:
+        - name: fileType
+          in: query
+          required: true
+          description: Data format type
+          schema:
+            type: string
+            enum:
+              - csv
+              - json
+              - ndjson
+            example: "json"
+        - name: indexName
+          in: query
+          required: true
+          description: Target index name for the import
+          schema:
+            type: string
+            minLength: 1
+            example: "my-data-index"
+        - name: createMode
+          in: query
+          required: true
+          description: Whether to create a new index (true) or append to existing (false)
+          schema:
+            type: boolean
+            example: true
+        - name: delimiter
+          in: query
+          required: false
+          description: Delimiter for CSV format (comma, semicolon, tab, or pipe)
+          schema:
+            type: string
+            enum:
+              - ","
+              - ";"
+              - "\t"
+              - "|"
+            example: ","
+        - name: dataSource
+          in: query
+          required: false
+          description: Data source ID when using multiple data sources
+          schema:
+            type: string
+        - name: importIdentifier
+          in: query
+          required: false
+          description: Alphanumeric identifier for creating a filtered alias. Must contain only letters, numbers, hyphens, and underscores.
+          schema:
+            type: string
+            pattern: '^[a-zA-Z0-9_-]+$'
+            example: "import_batch_002"
+      requestBody:
+        required: true
+        description: Text data to import and optional mapping
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - text
+              properties:
+                text:
+                  type: string
+                  minLength: 1
+                  description: Text data in CSV, JSON, or NDJSON format
+                  example: '{"name":"John","age":30}\n{"name":"Jane","age":25}'
+                mapping:
+                  type: string
+                  minLength: 1
+                  description: JSON string containing OpenSearch mapping (only used when createMode is true)
+                  example: '{"properties":{"name":{"type":"text"},"age":{"type":"integer"}}}'
+            examples:
+              csvText:
+                summary: CSV format text
+                value:
+                  text: "name,age,email\nJohn Doe,30,john@example.com\nJane Smith,25,jane@example.com"
+                  mapping: '{"properties":{"name":{"type":"text"},"age":{"type":"integer"},"email":{"type":"keyword"}}}'
+              jsonText:
+                summary: JSON array format text
+                value:
+                  text: '[{"name":"John","age":30},{"name":"Jane","age":25}]'
+              ndjsonText:
+                summary: NDJSON format text
+                value:
+                  text: '{"name":"John","age":30}\n{"name":"Jane","age":25}\n{"name":"Bob","age":35}'
+      responses:
+        '200':
+          description: Text import completed
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - message
+                  - success
+                properties:
+                  message:
+                    type: object
+                    properties:
+                      totalRows:
+                        type: integer
+                        description: Total number of rows processed
+                      successfulRows:
+                        type: integer
+                        description: Number of successfully imported rows
+                      failedRows:
+                        type: array
+                        items:
+                          type: object
+                        description: Array of failed row details
+                  success:
+                    type: boolean
+                    description: Whether all rows were successfully imported
+              examples:
+                successfulImport:
+                  summary: All rows imported successfully
+                  value:
+                    message:
+                      totalRows: 50
+                      successfulRows: 50
+                      failedRows: []
+                    success: true
+        '400':
+          description: Bad request - invalid parameters, validation failure, or mapping error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+              examples:
+                indexExists:
+                  summary: Index already exists in create mode
+                  value:
+                    body: "Index my-data-index already exists"
+                invalidText:
+                  summary: Text validation failed
+                  value:
+                    body: "Text is not valid: Invalid JSON format"
+                invalidMapping:
+                  summary: Invalid mapping JSON
+                  value:
+                    body: "Invalid mapping JSON: Unexpected token"
+                unsupportedFileType:
+                  summary: Unsupported file type
+                  value:
+                    body: "xml is not a registered or supported filetype"
+        '404':
+          description: Index not found or data source not enabled
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+              examples:
+                indexNotFound:
+                  summary: Index does not exist (append mode)
+                  value:
+                    body: "Index my-index does not exist"
+                dataSourceNotFound:
+                  summary: Data source not found
+                  value:
+                    body: "Data source is not enabled or does not exist"
+        '500':
+          description: Internal server error during import
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  body:
+                    type: string
+              examples:
+                indexCreationError:
+                  summary: Failed to create index
+                  value:
+                    body: "Error creating index: [error details]"
+                ingestionError:
+                  summary: Failed during data ingestion
+                  value:
+                    body: "Error ingesting text: [error details]"
+components:
+  schemas:
+    400_bad_request:
+      title: Bad request
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Bad Request
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 400
+    ImportMessage:
+      title: Import result message
+      type: object
+      properties:
+        totalRows:
+          type: integer
+          description: Total number of rows in the import
+          example: 100
+        successfulRows:
+          type: integer
+          description: Number of successfully imported rows
+          example: 98
+        failedRows:
+          type: array
+          description: Details of rows that failed to import
+          items:
+            type: object
+            properties:
+              row:
+                type: integer
+                description: Row number that failed
+              error:
+                type: string
+                description: Error message for the failed row
+          example:
+            - row: 23
+              error: "Mapping conflict on field 'date'"
+            - row: 67
+              error: "Invalid number format"

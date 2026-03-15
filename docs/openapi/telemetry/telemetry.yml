@@ -1,0 +1,267 @@
+openapi: 3.0.3
+info:
+  version: v1
+  title: OpenSearch Dashboards Telemetry API
+  contact:
+    name: OpenSearch Dashboards Team
+  description: |-
+    OpenAPI schema for OpenSearch Dashboards Telemetry API. This API manages telemetry opt-in/opt-out settings,
+    collects usage statistics, and tracks user consent for data collection.
+tags:
+  - name: telemetry
+    description: Manage telemetry settings including opt-in status, usage statistics collection, and user consent tracking.
+servers:
+  - url: http://localhost:5601
+components:
+  schemas:
+    TelemetryOptInRequest:
+      type: object
+      required:
+        - enabled
+      properties:
+        enabled:
+          type: boolean
+          description: Whether telemetry is enabled (true) or disabled (false).
+          example: true
+    TelemetryOptInStatsRequest:
+      type: object
+      required:
+        - enabled
+      properties:
+        enabled:
+          type: boolean
+          description: Whether telemetry is enabled (true) or disabled (false).
+          example: true
+        unencrypted:
+          type: boolean
+          default: true
+          description: Whether to return unencrypted telemetry data.
+          example: false
+    TelemetryUsageStatsRequest:
+      type: object
+      required:
+        - timeRange
+      properties:
+        unencrypted:
+          type: boolean
+          default: false
+          description: Whether to return unencrypted telemetry data.
+          example: false
+        timeRange:
+          type: object
+          required:
+            - min
+            - max
+          properties:
+            min:
+              oneOf:
+                - type: string
+                  format: date-time
+                - type: number
+              description: Start time for the statistics range (ISO 8601 date string or Unix timestamp).
+              example: "2024-01-01T00:00:00.000Z"
+            max:
+              oneOf:
+                - type: string
+                  format: date-time
+                - type: number
+              description: End time for the statistics range (ISO 8601 date string or Unix timestamp).
+              example: "2024-01-31T23:59:59.999Z"
+    400_bad_request:
+      title: Bad request
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Bad Request
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 400
+    403_forbidden:
+      title: Forbidden
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Forbidden
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 403
+paths:
+  /api/telemetry/v2/optIn:
+    post:
+      tags:
+        - telemetry
+      summary: Update telemetry opt-in status
+      operationId: updateTelemetryOptIn
+      description: |-
+        Enable or disable telemetry data collection. This endpoint updates the user's consent for
+        telemetry data collection and sends the opt-in status to the telemetry server if configured.
+        Requires permission to update saved objects.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TelemetryOptInRequest'
+            examples:
+              optIn:
+                summary: Enable telemetry
+                value:
+                  enabled: true
+              optOut:
+                summary: Disable telemetry
+                value:
+                  enabled: false
+      responses:
+        '200':
+          description: Opt-in status successfully updated
+          content:
+            application/json:
+              schema:
+                type: object
+                description: Contains the telemetry opt-in statistics and cluster information
+        '400':
+          description: Bad request - invalid parameters or opt-in status changes not allowed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/400_bad_request'
+              examples:
+                notAllowed:
+                  summary: Opt-in changes not allowed
+                  value:
+                    error: "Bad Request"
+                    message: "Not allowed to change Opt-in Status."
+                    statusCode: 400
+        '403':
+          description: Forbidden - insufficient permissions to update telemetry settings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/403_forbidden'
+  /api/telemetry/v2/clusters/_opt_in_stats:
+    post:
+      tags:
+        - telemetry
+      summary: Get telemetry opt-in statistics
+      operationId: getTelemetryOptInStats
+      description: |-
+        Retrieve telemetry opt-in statistics for the cluster. Returns cluster information and
+        telemetry data collected over the last 20 minutes.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TelemetryOptInStatsRequest'
+            examples:
+              encrypted:
+                summary: Get encrypted opt-in stats
+                value:
+                  enabled: true
+                  unencrypted: false
+              unencrypted:
+                summary: Get unencrypted opt-in stats
+                value:
+                  enabled: true
+                  unencrypted: true
+      responses:
+        '200':
+          description: Successfully retrieved opt-in statistics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                description: Array of telemetry cluster statistics
+  /api/telemetry/v2/clusters/_stats:
+    post:
+      tags:
+        - telemetry
+      summary: Get telemetry usage statistics
+      operationId: getTelemetryUsageStats
+      description: |-
+        Retrieve detailed telemetry usage statistics for a specified time range. Returns cluster
+        information, plugin usage, and other telemetry data collected during the specified period.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TelemetryUsageStatsRequest'
+            examples:
+              lastMonth:
+                summary: Get stats for the last month
+                value:
+                  unencrypted: false
+                  timeRange:
+                    min: "2024-01-01T00:00:00.000Z"
+                    max: "2024-01-31T23:59:59.999Z"
+              lastWeek:
+                summary: Get unencrypted stats for the last week
+                value:
+                  unencrypted: true
+                  timeRange:
+                    min: 1704067200000
+                    max: 1704672000000
+      responses:
+        '200':
+          description: Successfully retrieved usage statistics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                description: Array of telemetry usage statistics
+        '403':
+          description: Forbidden - insufficient permissions for unencrypted data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/403_forbidden'
+  /api/telemetry/v2/userHasSeenNotice:
+    put:
+      tags:
+        - telemetry
+      summary: Mark telemetry notice as seen
+      operationId: markTelemetryNoticeAsSeen
+      description: |-
+        Update the telemetry saved object to indicate that the user has seen the opt-in notice.
+        This is typically called when the telemetry banner is displayed to the user.
+      responses:
+        '200':
+          description: Successfully marked notice as seen
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  enabled:
+                    type: boolean
+                    description: Current telemetry opt-in status
+                  lastVersionChecked:
+                    type: string
+                    description: Last version of OpenSearch Dashboards that checked telemetry settings
+                  userHasSeenNotice:
+                    type: boolean
+                    description: Whether the user has seen the telemetry notice
+                    example: true

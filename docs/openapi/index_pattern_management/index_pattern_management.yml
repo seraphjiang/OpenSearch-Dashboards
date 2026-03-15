@@ -1,0 +1,420 @@
+openapi: 3.0.3
+info:
+  version: v1
+  title: OpenSearch Dashboards Index Pattern Management API
+  contact:
+    name: OpenSearch Dashboards Team
+  description: |-
+    OpenAPI schema for OpenSearch Dashboards Index Pattern Management API.
+
+    This plugin provides utilities for managing index patterns, including previewing scripted fields and resolving index names with wildcards.
+tags:
+  - name: index pattern management
+    description: Manage index patterns including scripted field previews and index resolution
+servers:
+  - url: http://localhost:5601
+components:
+  schemas:
+    400_bad_request:
+      title: Bad request
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Bad Request
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 400
+    ErrorResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Error message
+        attributes:
+          type: object
+          properties:
+            error:
+              type: string
+              description: Detailed error information
+    PreviewScriptedFieldRequest:
+      type: object
+      required:
+        - index
+        - name
+        - script
+      properties:
+        index:
+          type: string
+          description: Index or index pattern to search
+          example: opensearch_dashboards_sample_data_logs
+        name:
+          type: string
+          description: Name of the scripted field
+          example: hour_of_day
+        script:
+          type: string
+          description: Painless script for the scripted field
+          example: doc['timestamp'].value.getHour()
+        query:
+          type: object
+          description: Optional OpenSearch query to filter documents
+          additionalProperties: true
+        additionalFields:
+          type: array
+          items:
+            type: string
+          description: Additional fields to include in the response
+          example:
+            - timestamp
+            - message
+    OpenSearchSearchResponse:
+      type: object
+      description: OpenSearch search response with script field results
+      properties:
+        took:
+          type: integer
+          description: Time in milliseconds for OpenSearch to execute the search
+        timed_out:
+          type: boolean
+          description: Whether the search timed out
+        _shards:
+          type: object
+          properties:
+            total:
+              type: integer
+            successful:
+              type: integer
+            skipped:
+              type: integer
+            failed:
+              type: integer
+        hits:
+          type: object
+          properties:
+            total:
+              type: object
+              properties:
+                value:
+                  type: integer
+                relation:
+                  type: string
+            max_score:
+              type: number
+              nullable: true
+            hits:
+              type: array
+              items:
+                type: object
+                properties:
+                  _index:
+                    type: string
+                  _id:
+                    type: string
+                  _score:
+                    type: number
+                  _source:
+                    type: object
+                    description: Document source fields
+                  fields:
+                    type: object
+                    description: Scripted field results
+    ResolveIndexResponse:
+      type: object
+      description: Index resolution results from OpenSearch
+      properties:
+        indices:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                description: Index name
+              attributes:
+                type: array
+                items:
+                  type: string
+                  enum:
+                    - open
+                    - closed
+                    - hidden
+                    - frozen
+                description: Index attributes
+          description: List of matching indices
+        aliases:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                description: Alias name
+              indices:
+                type: array
+                items:
+                  type: string
+                description: Indices that this alias points to
+          description: List of matching aliases
+        data_streams:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+                description: Data stream name
+              backing_indices:
+                type: array
+                items:
+                  type: string
+                description: Backing indices for this data stream
+              timestamp_field:
+                type: string
+                description: Timestamp field for the data stream
+          description: List of matching data streams
+paths:
+  /internal/index-pattern-management/preview_scripted_field:
+    post:
+      tags:
+        - index pattern management
+      summary: Preview a scripted field
+      operationId: previewScriptedField
+      description: |-
+        Execute a Painless script against sample documents to preview the results of a scripted field.
+
+        This endpoint runs the provided script as a script_field in an OpenSearch search query,
+        returning up to 10 sample documents with the computed field values. This helps users
+        validate their scripted field logic before saving it to an index pattern.
+
+        The search has a 30-second timeout and can optionally filter documents using a query.
+      parameters:
+        - in: query
+          name: dataSourceId
+          description: Optional data source ID to execute the preview against a specific data source
+          schema:
+            type: string
+          example: 550e8400-e29b-41d4-a716-446655440000
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreviewScriptedFieldRequest'
+            examples:
+              basicScript:
+                summary: Basic scripted field extracting hour from timestamp
+                value:
+                  index: opensearch_dashboards_sample_data_logs
+                  name: hour_of_day
+                  script: doc['timestamp'].value.getHour()
+              scriptWithQuery:
+                summary: Scripted field with query filter
+                value:
+                  index: opensearch_dashboards_sample_data_*
+                  name: response_size_kb
+                  script: doc['bytes'].value / 1024
+                  query:
+                    range:
+                      timestamp:
+                        gte: now-7d
+                  additionalFields:
+                    - timestamp
+                    - bytes
+              complexScript:
+                summary: Complex scripted field with conditional logic
+                value:
+                  index: logs-*
+                  name: status_category
+                  script: |
+                    if (doc['response.keyword'].value.startsWith('2')) {
+                      return 'success';
+                    } else if (doc['response.keyword'].value.startsWith('4')) {
+                      return 'client_error';
+                    } else if (doc['response.keyword'].value.startsWith('5')) {
+                      return 'server_error';
+                    }
+                    return 'other';
+                  additionalFields:
+                    - response
+      responses:
+        '200':
+          description: Script executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OpenSearchSearchResponse'
+              examples:
+                success:
+                  summary: Successful script execution with results
+                  value:
+                    took: 5
+                    timed_out: false
+                    _shards:
+                      total: 1
+                      successful: 1
+                      skipped: 0
+                      failed: 0
+                    hits:
+                      total:
+                        value: 14074
+                        relation: eq
+                      max_score: 1.0
+                      hits:
+                        - _index: opensearch_dashboards_sample_data_logs
+                          _id: abc123
+                          _score: 1.0
+                          _source:
+                            timestamp: '2024-03-14T10:30:00.000Z'
+                            message: GET /api/products
+                          fields:
+                            hour_of_day:
+                              - 10
+        '500':
+          description: Script execution failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                scriptError:
+                  value:
+                    message: Script execution error
+                    attributes:
+                      error: 'compile error: Unexpected token'
+                timeout:
+                  value:
+                    message: Script execution timed out
+                    attributes:
+                      error: SearchPhaseExecutionException[all shards failed]
+  /internal/index-pattern-management/resolve_index/{query}:
+    get:
+      tags:
+        - index pattern management
+      summary: Resolve index patterns
+      operationId: resolveIndex
+      description: |-
+        Resolve index names, aliases, and data streams using the OpenSearch resolve index API.
+
+        This endpoint supports wildcard patterns and returns information about matching:
+        - Indices (with their attributes like open/closed/hidden)
+        - Aliases (with the indices they point to)
+        - Data streams (with their backing indices)
+
+        This is useful for index pattern creation and validation.
+      parameters:
+        - in: path
+          name: query
+          required: true
+          description: Index pattern query (supports wildcards)
+          schema:
+            type: string
+          examples:
+            wildcard:
+              value: logs-*
+            exact:
+              value: opensearch_dashboards_sample_data_logs
+            multiple:
+              value: logs-*,metrics-*
+        - in: query
+          name: expand_wildcards
+          description: Controls what kind of indices wildcard patterns can match
+          schema:
+            type: string
+            enum:
+              - all
+              - open
+              - closed
+              - hidden
+              - none
+          examples:
+            all:
+              value: all
+            open:
+              value: open
+        - in: query
+          name: data_source
+          description: Optional data source ID to resolve indices from a specific data source
+          schema:
+            type: string
+          example: 550e8400-e29b-41d4-a716-446655440000
+      responses:
+        '200':
+          description: Index resolution successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResolveIndexResponse'
+              examples:
+                withIndices:
+                  summary: Resolution with indices
+                  value:
+                    indices:
+                      - name: logs-2024.03.14
+                        attributes:
+                          - open
+                      - name: logs-2024.03.13
+                        attributes:
+                          - open
+                    aliases: []
+                    data_streams: []
+                withAlias:
+                  summary: Resolution with alias
+                  value:
+                    indices: []
+                    aliases:
+                      - name: logs-alias
+                        indices:
+                          - logs-2024.03.14
+                          - logs-2024.03.13
+                    data_streams: []
+                withDataStream:
+                  summary: Resolution with data stream
+                  value:
+                    indices: []
+                    aliases: []
+                    data_streams:
+                      - name: logs-generic-default
+                        backing_indices:
+                          - .ds-logs-generic-default-2024.03.14-000001
+                          - .ds-logs-generic-default-2024.03.13-000001
+                        timestamp_field: '@timestamp'
+                mixed:
+                  summary: Resolution with multiple types
+                  value:
+                    indices:
+                      - name: standalone-index
+                        attributes:
+                          - open
+                    aliases:
+                      - name: all-logs
+                        indices:
+                          - logs-2024.03.14
+                          - logs-2024.03.13
+                    data_streams:
+                      - name: logs-generic-default
+                        backing_indices:
+                          - .ds-logs-generic-default-2024.03.14-000001
+                        timestamp_field: '@timestamp'
+        '500':
+          description: Index resolution failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  value:
+                    message: Failed to resolve index
+                    attributes:
+                      error: no such index [nonexistent-index]

@@ -1,0 +1,112 @@
+openapi: 3.0.3
+info:
+  version: v1
+  title: OpenSearch Dashboards Banner API
+  contact:
+    name: OpenSearch Dashboards Team
+  description: |-
+    OpenAPI schema for OpenSearch Dashboards Banner API
+tags:
+  - name: banner
+    description: Manage banner configuration and display settings
+servers:
+  - url: http://localhost:5601
+paths:
+  /api/_plugins/_banner/content:
+    get:
+      tags:
+        - banner
+      summary: Retrieve banner configuration and content
+      description: Returns the current banner configuration including content, color, icon, visibility, and display settings from UI settings
+      operationId: getBannerContent
+      responses:
+        '200':
+          description: Successfully retrieved banner configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BannerConfig'
+              examples:
+                warningBanner:
+                  summary: Warning banner with markdown
+                  value:
+                    content: "# Maintenance Notice\nSystem will be down for maintenance."
+                    color: warning
+                    iconType: alert
+                    isVisible: true
+                    useMarkdown: true
+                    size: m
+                successBanner:
+                  summary: Success banner without markdown
+                  value:
+                    content: "Welcome to OpenSearch Dashboards!"
+                    color: success
+                    iconType: check
+                    isVisible: true
+                    useMarkdown: false
+                    size: s
+        '500':
+          description: Internal server error occurred while retrieving banner configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/500_internal_server_error'
+components:
+  schemas:
+    BannerConfig:
+      title: Banner Configuration
+      type: object
+      required:
+        - content
+        - color
+        - isVisible
+      properties:
+        content:
+          type: string
+          description: The text content to display in the banner. Can be plain text or markdown depending on useMarkdown setting.
+          example: "# Important Notice\nSystem maintenance scheduled."
+        color:
+          type: string
+          description: The color theme of the banner
+          enum:
+            - primary
+            - success
+            - warning
+          example: warning
+        iconType:
+          type: string
+          description: Optional icon type to display in the banner (EUI icon name)
+          example: alert
+        isVisible:
+          type: boolean
+          description: Whether the banner is currently visible to users
+          example: true
+        useMarkdown:
+          type: boolean
+          description: Whether to render the content as markdown
+          example: true
+        size:
+          type: string
+          description: The size of the banner
+          enum:
+            - s
+            - m
+          example: m
+    500_internal_server_error:
+      title: Internal Server Error
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Internal Server Error
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 500

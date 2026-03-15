@@ -1,0 +1,217 @@
+openapi: 3.0.3
+info:
+  version: v1
+  title: "OpenSearch Dashboards Share API"
+  contact:
+    name: OpenSearch Dashboards Team
+  description: "OpenAPI schema for OpenSearch Dashboards Share API - URL shortening and sharing functionality"
+tags:
+  - name: share
+    description: Short URL generation and retrieval for sharing dashboards and visualizations
+servers:
+  - url: http://localhost:5601
+paths:
+  /api/shorten_url:
+    post:
+      tags:
+        - share
+      summary: Create a shortened URL
+      operationId: createShortUrl
+      description: Generate a short URL identifier for a long URL to enable easier sharing of dashboards and visualizations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - url
+              properties:
+                url:
+                  type: string
+                  description: The full URL to be shortened
+                  example: "/app/dashboards#/view/dashboard-id?_g=(time:(from:now-15m,to:now))"
+            examples:
+              dashboardUrl:
+                summary: Shorten a dashboard URL
+                value:
+                  url: "/app/dashboards#/view/722b74f0-b882-11e8-a6d9-e546fe2bba5f?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-15m,to:now))"
+              visualizationUrl:
+                summary: Shorten a visualization URL
+                value:
+                  url: "/app/visualize#/edit/visualization-id?_g=(time:(from:now-24h,to:now))"
+      responses:
+        '200':
+          description: Short URL created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  urlId:
+                    type: string
+                    description: The unique identifier for the shortened URL
+                    example: "abc123def456"
+              examples:
+                successResponse:
+                  summary: Successful URL shortening
+                  value:
+                    urlId: "abc123def456"
+        '400':
+          description: Bad request - invalid URL format
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/400_bad_request'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/500_internal_error'
+  /api/short_url/{urlId}:
+    get:
+      tags:
+        - share
+      summary: Retrieve the full URL from a short URL ID
+      operationId: getShortUrl
+      description: Get the original full URL associated with a shortened URL identifier
+      parameters:
+        - name: urlId
+          in: path
+          required: true
+          description: The unique identifier of the shortened URL
+          schema:
+            type: string
+            example: "abc123def456"
+      responses:
+        '200':
+          description: URL retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+                    description: The full original URL
+                    example: "/app/dashboards#/view/dashboard-id?_g=(time:(from:now-15m,to:now))"
+              examples:
+                successResponse:
+                  summary: Successful URL retrieval
+                  value:
+                    url: "/app/dashboards#/view/722b74f0-b882-11e8-a6d9-e546fe2bba5f?_g=(filters:!(),refreshInterval:(pause:!t,value:0),time:(from:now-15m,to:now))"
+        '404':
+          description: Short URL not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/404_not_found'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/500_internal_error'
+  /goto/{urlId}:
+    get:
+      tags:
+        - share
+      summary: Redirect to the full URL from a short URL ID
+      operationId: gotoShortUrl
+      description: Redirects the user to the original URL associated with the shortened URL identifier. Handles session storage state based on configuration.
+      parameters:
+        - name: urlId
+          in: path
+          required: true
+          description: The unique identifier of the shortened URL
+          schema:
+            type: string
+            example: "abc123def456"
+      responses:
+        '302':
+          description: Redirect to the original URL
+          headers:
+            Location:
+              description: The full URL to redirect to
+              schema:
+                type: string
+                example: "/app/dashboards#/view/dashboard-id?_g=(time:(from:now-15m,to:now))"
+        '200':
+          description: Renders the core app when state is stored in session storage
+          content:
+            text/html:
+              schema:
+                type: string
+                description: HTML page that handles session storage state
+        '404':
+          description: Short URL not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/404_not_found'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/500_internal_error'
+components:
+  schemas:
+    400_bad_request:
+      title: Bad request
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Bad Request
+        message:
+          type: string
+          example: "Invalid URL format"
+        statusCode:
+          type: integer
+          enum:
+            - 400
+    404_not_found:
+      title: Not found
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Not Found
+        message:
+          type: string
+          example: "Saved object [url/urlId] not found"
+        statusCode:
+          type: integer
+          enum:
+            - 404
+    500_internal_error:
+      title: Internal server error
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Internal Server Error
+        message:
+          type: string
+          example: "An internal server error occurred"
+        statusCode:
+          type: integer
+          enum:
+            - 500

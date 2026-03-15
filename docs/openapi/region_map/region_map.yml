@@ -1,0 +1,265 @@
+openapi: 3.0.3
+info:
+  version: v1
+  title: OpenSearch Dashboards Region Map API
+  contact:
+    name: OpenSearch Dashboards Team
+  description: |-
+    OpenAPI schema for OpenSearch Dashboards Region Map API. This plugin provides geospatial data operations for region map visualizations, including index lookup, search, and mappings retrieval.
+tags:
+  - name: geospatial
+    description: Geospatial data operations for region map visualizations
+servers:
+  - url: http://localhost:5601
+components:
+  parameters:
+    dataSourceId:
+      name: dataSourceId
+      in: query
+      description: Optional data source ID for multi-data-source environments
+      required: false
+      schema:
+        type: string
+        example: "datasource-123"
+  schemas:
+    GeospatialIndexRequest:
+      type: object
+      required:
+        - index
+      properties:
+        index:
+          type: string
+          description: Index pattern to search (must end with "-map")
+          example: "world-countries-map"
+          pattern: ".*-map$"
+    GeospatialSearchRequest:
+      type: object
+      required:
+        - index
+        - size
+      properties:
+        index:
+          type: string
+          description: Index name to search
+          example: "world-countries-map"
+        size:
+          type: integer
+          description: Maximum number of documents to return
+          example: 100
+          minimum: 0
+    GeospatialMappingsRequest:
+      type: object
+      required:
+        - index
+      properties:
+        index:
+          type: string
+          description: Index name to retrieve mappings for
+          example: "world-countries-map"
+    GeospatialSuccessResponse:
+      type: object
+      required:
+        - ok
+        - resp
+      properties:
+        ok:
+          type: boolean
+          enum:
+            - true
+          description: Indicates successful operation
+        resp:
+          oneOf:
+            - type: array
+              items:
+                type: string
+              description: List of index names (for indices endpoint)
+            - type: object
+              description: Search results or mappings (for search/mappings endpoints)
+    GeospatialErrorResponse:
+      type: object
+      required:
+        - ok
+        - message
+      properties:
+        ok:
+          type: boolean
+          enum:
+            - false
+          description: Indicates failed operation
+        message:
+          type: string
+          description: Error message
+          example: "Index name must end with \"-map\""
+paths:
+  /api/geospatial/_indices:
+    post:
+      tags:
+        - geospatial
+      summary: List geospatial indices matching a pattern
+      operationId: listGeospatialIndices
+      description: Retrieves a list of index names that match the specified pattern. The index pattern must end with "-map".
+      parameters:
+        - $ref: '#/components/parameters/dataSourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GeospatialIndexRequest'
+            examples:
+              worldCountries:
+                summary: List world countries map indices
+                value:
+                  index: "world-countries-map"
+              usStates:
+                summary: List US states map indices
+                value:
+                  index: "us-states-map"
+      responses:
+        '200':
+          description: Successfully retrieved index list
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeospatialSuccessResponse'
+              examples:
+                indicesResponse:
+                  summary: Example indices response
+                  value:
+                    ok: true
+                    resp:
+                      - "world-countries-map"
+                      - "us-states-map"
+        '400':
+          description: Bad request - invalid index pattern
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeospatialErrorResponse'
+              examples:
+                invalidIndexError:
+                  summary: Invalid index pattern error
+                  value:
+                    ok: false
+                    message: "Index name must end with \"-map\""
+  /api/geospatial/_search:
+    post:
+      tags:
+        - geospatial
+      summary: Search geospatial data in an index
+      operationId: searchGeospatialData
+      description: Searches for geospatial documents in the specified index and returns the results
+      parameters:
+        - $ref: '#/components/parameters/dataSourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GeospatialSearchRequest'
+            examples:
+              searchCountries:
+                summary: Search world countries
+                value:
+                  index: "world-countries-map"
+                  size: 100
+              searchStates:
+                summary: Search US states
+                value:
+                  index: "us-states-map"
+                  size: 50
+      responses:
+        '200':
+          description: Successfully retrieved search results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeospatialSuccessResponse'
+              examples:
+                searchResponse:
+                  summary: Example search response
+                  value:
+                    ok: true
+                    resp:
+                      hits:
+                        total:
+                          value: 100
+                          relation: "eq"
+                        hits:
+                          - _index: "world-countries-map"
+                            _id: "US"
+                            _source:
+                              name: "United States"
+                              iso2: "US"
+                              iso3: "USA"
+                              geometry:
+                                type: "Polygon"
+                                coordinates: []
+        '400':
+          description: Bad request - invalid search parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeospatialErrorResponse'
+              examples:
+                searchError:
+                  summary: Search error
+                  value:
+                    ok: false
+                    message: "Index not found"
+  /api/geospatial/_mappings:
+    post:
+      tags:
+        - geospatial
+      summary: Get index mappings for geospatial data
+      operationId: getGeospatialMappings
+      description: Retrieves the field mappings for the specified geospatial index
+      parameters:
+        - $ref: '#/components/parameters/dataSourceId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GeospatialMappingsRequest'
+            example:
+              index: "world-countries-map"
+      responses:
+        '200':
+          description: Successfully retrieved index mappings
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeospatialSuccessResponse'
+              examples:
+                mappingsResponse:
+                  summary: Example mappings response
+                  value:
+                    ok: true
+                    resp:
+                      world-countries-map:
+                        mappings:
+                          properties:
+                            name:
+                              type: "text"
+                              fields:
+                                keyword:
+                                  type: "keyword"
+                            iso2:
+                              type: "keyword"
+                            iso3:
+                              type: "keyword"
+                            geometry:
+                              type: "geo_shape"
+        '400':
+          description: Bad request - index not found or invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GeospatialErrorResponse'
+              examples:
+                mappingsError:
+                  summary: Mappings error
+                  value:
+                    ok: false
+                    message: "Index not found"

@@ -1,0 +1,479 @@
+openapi: 3.0.3
+info:
+  version: v1
+  title: OpenSearch Dashboards TSVB (Time Series Visual Builder) API
+  contact:
+    name: OpenSearch Dashboards Team
+  description: OpenAPI schema for OpenSearch Dashboards TSVB (Time Series Visual Builder) API - provides endpoints for time series visualization data retrieval and field discovery
+tags:
+  - name: tsvb
+    description: Time Series Visual Builder endpoints for retrieving visualization data and index fields
+servers:
+  - url: http://localhost:5601
+paths:
+  /api/metrics/fields:
+    get:
+      tags:
+        - tsvb
+      summary: Get fields from an index pattern
+      description: Retrieve the list of available fields for a given index pattern. Used by TSVB to populate field dropdowns and autocomplete.
+      operationId: getFields
+      parameters:
+        - name: index
+          in: query
+          description: Index pattern to retrieve fields from
+          required: true
+          schema:
+            type: string
+          example: "opensearch_dashboards_sample_data_logs"
+        - name: data_source
+          in: query
+          description: Optional data source ID for multi-data source support
+          required: false
+          schema:
+            type: string
+          example: "a1b2c3d4-5678-90ab-cdef-1234567890ab"
+      responses:
+        '200':
+          description: Fields retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                      description: Field name
+                    type:
+                      type: string
+                      description: Field type (e.g., string, number, date)
+                    label:
+                      type: string
+                      description: Display label for the field
+              examples:
+                fieldsResponse:
+                  summary: Example fields response
+                  value:
+                    - name: "@timestamp"
+                      type: "date"
+                      label: "@timestamp"
+                    - name: "bytes"
+                      type: "number"
+                      label: "bytes"
+                    - name: "clientip"
+                      type: "string"
+                      label: "clientip"
+        '401':
+          description: Unauthorized - authentication required
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  statusCode:
+                    type: integer
+                    example: 401
+                  error:
+                    type: string
+                    example: "Unauthorized"
+                  message:
+                    type: string
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/400_bad_request'
+  /api/metrics/vis/data:
+    post:
+      tags:
+        - tsvb
+      summary: Get visualization data
+      description: Retrieve time series data for TSVB visualizations. Accepts a complex panel configuration and returns formatted data ready for visualization.
+      operationId: getVisData
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VisPayload'
+            examples:
+              timeseriesPanel:
+                summary: Time series panel request
+                value:
+                  timerange:
+                    min: "2024-01-01T00:00:00.000Z"
+                    max: "2024-01-31T23:59:59.999Z"
+                    timezone: "UTC"
+                  filters: []
+                  panels:
+                    - id: "panel-1"
+                      type: "timeseries"
+                      series:
+                        - id: "series-1"
+                          color: "#68BC00"
+                          split_mode: "everything"
+                          metrics:
+                            - id: "metric-1"
+                              type: "count"
+                          separate_axis: 0
+                          axis_position: "right"
+                          formatter: "number"
+                          chart_type: "line"
+                          line_width: 1
+                          point_size: 1
+                          fill: 0.5
+                          stacked: "none"
+                      show_legend: 1
+                      show_grid: 1
+                      axis_formatter: "number"
+                      axis_position: "left"
+                      axis_scale: "normal"
+                      axis_min: ""
+                      axis_max: ""
+                      index_pattern: "*"
+                      interval: "auto"
+                  query: []
+                  state:
+                    sort:
+                      column: "_score"
+                      order: "asc"
+      responses:
+        '200':
+          description: Visualization data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                description: Visualization data formatted according to panel type and configuration
+              examples:
+                timeseriesData:
+                  summary: Time series data response
+                  value:
+                    panel-1:
+                      id: "panel-1"
+                      series:
+                        - id: "series-1"
+                          label: "Count"
+                          data: [[1704067200000, 1234], [1704153600000, 2345]]
+        '400':
+          description: Bad request - invalid panel configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/400_bad_request'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+  /api/metrics/vis/data-raw:
+    post:
+      tags:
+        - tsvb
+      summary: Get raw visualization data
+      description: Retrieve raw time series data for TSVB visualizations. Similar to /api/metrics/vis/data but returns the raw OpenSearch response.
+      operationId: getVisDataRaw
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VisPayload'
+            examples:
+              rawDataRequest:
+                summary: Raw data request
+                value:
+                  timerange:
+                    min: "2024-01-01T00:00:00.000Z"
+                    max: "2024-01-31T23:59:59.999Z"
+                    timezone: "UTC"
+                  filters: []
+                  panels:
+                    - id: "panel-1"
+                      type: "timeseries"
+                      series:
+                        - id: "series-1"
+                          metrics:
+                            - id: "metric-1"
+                              type: "count"
+                      index_pattern: "*"
+                      interval: "auto"
+                  query: []
+                  state:
+                    sort:
+                      column: "_score"
+                      order: "asc"
+      responses:
+        '200':
+          description: Raw visualization data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+                description: Raw OpenSearch aggregation responses
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/400_bad_request'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+components:
+  schemas:
+    VisPayload:
+      type: object
+      required:
+        - panels
+        - timerange
+      properties:
+        filters:
+          type: array
+          description: Global filters to apply
+          items:
+            type: object
+            nullable: true
+        panels:
+          type: array
+          description: Array of panel configurations
+          items:
+            $ref: '#/components/schemas/Panel'
+        query:
+          type: array
+          nullable: true
+          description: Global queries to apply
+          items:
+            type: object
+            properties:
+              language:
+                type: string
+                example: "kuery"
+              query:
+                type: string
+                example: "status:200"
+        state:
+          type: object
+          properties:
+            sort:
+              type: object
+              properties:
+                column:
+                  type: string
+                order:
+                  type: string
+                  enum: [asc, desc]
+        savedObjectId:
+          type: string
+          description: ID of the saved visualization object
+        timerange:
+          type: object
+          required:
+            - timezone
+            - min
+            - max
+          properties:
+            timezone:
+              type: string
+              example: "UTC"
+            min:
+              type: string
+              example: "2024-01-01T00:00:00.000Z"
+            max:
+              type: string
+              example: "2024-01-31T23:59:59.999Z"
+    Panel:
+      type: object
+      required:
+        - id
+        - type
+        - index_pattern
+        - interval
+        - series
+        - show_grid
+        - show_legend
+        - axis_formatter
+        - axis_position
+        - axis_scale
+      properties:
+        id:
+          type: string
+          description: Unique panel identifier
+        type:
+          type: string
+          description: Panel type (timeseries, metric, top_n, gauge, markdown, table)
+          enum: [timeseries, metric, top_n, gauge, markdown, table]
+        index_pattern:
+          type: string
+          description: Index pattern to query
+        interval:
+          type: string
+          description: Time interval for aggregations (e.g., "auto", "1h", "1d")
+        series:
+          type: array
+          description: Array of series configurations
+          items:
+            $ref: '#/components/schemas/Series'
+        show_grid:
+          type: integer
+          description: Whether to show grid (0 or 1)
+          enum: [0, 1]
+        show_legend:
+          type: integer
+          description: Whether to show legend (0 or 1)
+          enum: [0, 1]
+        axis_formatter:
+          type: string
+          description: Formatter for axis values
+        axis_position:
+          type: string
+          description: Position of the axis
+          enum: [left, right]
+        axis_scale:
+          type: string
+          description: Scale type for axis
+          enum: [normal, log]
+        axis_min:
+          oneOf:
+            - type: string
+            - type: number
+          nullable: true
+        axis_max:
+          oneOf:
+            - type: string
+            - type: number
+          nullable: true
+        filter:
+          nullable: true
+          oneOf:
+            - type: string
+            - type: object
+              properties:
+                language:
+                  type: string
+                query:
+                  type: string
+        time_field:
+          type: string
+          nullable: true
+        data_source_id:
+          type: string
+          nullable: true
+          description: Data source ID for multi-data source support
+    Series:
+      type: object
+      required:
+        - id
+        - color
+        - split_mode
+        - metrics
+        - axis_position
+        - formatter
+        - chart_type
+        - stacked
+      properties:
+        id:
+          type: string
+          description: Unique series identifier
+        color:
+          type: string
+          description: Color for the series (hex code)
+        split_mode:
+          type: string
+          description: How to split the series
+          enum: [everything, filters, terms]
+        metrics:
+          type: array
+          description: Metrics to calculate
+          items:
+            $ref: '#/components/schemas/Metric'
+        axis_position:
+          type: string
+          enum: [left, right]
+        formatter:
+          type: string
+          description: Value formatter
+        chart_type:
+          type: string
+          enum: [line, area, bar]
+        line_width:
+          oneOf:
+            - type: number
+            - type: string
+        point_size:
+          oneOf:
+            - type: number
+            - type: string
+        fill:
+          oneOf:
+            - type: number
+            - type: string
+        stacked:
+          type: string
+          enum: [none, stacked, percent]
+        label:
+          type: string
+          nullable: true
+        filter:
+          oneOf:
+            - type: object
+              properties:
+                query:
+                  type: string
+                language:
+                  type: string
+            - type: string
+              enum: ['']
+    Metric:
+      type: object
+      required:
+        - id
+        - type
+      properties:
+        id:
+          type: string
+          description: Unique metric identifier
+        type:
+          type: string
+          description: Metric aggregation type
+          example: "count"
+        field:
+          type: string
+          nullable: true
+          description: Field to aggregate on
+        unit:
+          type: string
+          nullable: true
+    400_bad_request:
+      title: Bad request
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Bad Request
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 400

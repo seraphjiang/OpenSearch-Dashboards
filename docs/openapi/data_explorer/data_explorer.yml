@@ -1,0 +1,70 @@
+openapi: 3.0.3
+info:
+  version: v1
+  title: OpenSearch Dashboards Data Explorer API
+  contact:
+    name: OpenSearch Dashboards Team
+  description: |-
+    OpenAPI schema for OpenSearch Dashboards Data Explorer API. This API provides example endpoints for the data explorer plugin.
+tags:
+  - name: data-explorer
+    description: Example endpoints for data explorer functionality
+servers:
+  - url: http://localhost:5601
+paths:
+  /api/data_explorer/example:
+    get:
+      tags:
+        - data-explorer
+      summary: Get example data explorer response
+      description: Returns an example response with the current server timestamp. This is a demonstration endpoint for the data explorer plugin.
+      operationId: getDataExplorerExample
+      responses:
+        '200':
+          description: Successfully retrieved example data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExampleResponse'
+              examples:
+                exampleResponse:
+                  summary: Example response with timestamp
+                  value:
+                    time: "2024-03-14T12:00:00.000Z"
+        '500':
+          description: Internal server error occurred
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/500_internal_server_error'
+components:
+  schemas:
+    ExampleResponse:
+      title: Example Response
+      type: object
+      required:
+        - time
+      properties:
+        time:
+          type: string
+          format: date-time
+          description: The current server time in ISO 8601 format
+          example: "2024-03-14T12:00:00.000Z"
+    500_internal_server_error:
+      title: Internal Server Error
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Internal Server Error
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 500

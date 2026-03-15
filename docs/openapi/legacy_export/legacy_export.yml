@@ -1,0 +1,213 @@
+openapi: 3.0.3
+info:
+  version: v1
+  title: OpenSearch Dashboards Legacy Export API
+  contact:
+    name: OpenSearch Dashboards Team
+  description: OpenAPI schema for OpenSearch Dashboards Legacy Export API - provides legacy dashboard export and import functionality
+tags:
+  - name: legacy-export
+    description: Export and import dashboards in legacy format
+servers:
+  - url: http://localhost:5601
+paths:
+  /api/opensearch-dashboards/dashboards/export:
+    get:
+      tags:
+        - legacy-export
+      summary: Export dashboards in legacy format
+      description: Export one or more dashboards as a JSON file in legacy format. Returns a JSON file with the exported dashboards and their dependencies.
+      operationId: exportDashboards
+      parameters:
+        - name: dashboard
+          in: query
+          description: Dashboard ID(s) to export. Can be a single ID or an array of IDs.
+          required: true
+          schema:
+            oneOf:
+              - type: string
+                description: Single dashboard ID
+              - type: array
+                description: Array of dashboard IDs
+                items:
+                  type: string
+          example: "7adfa750-4c81-11e8-b3d7-01146121b73d"
+      responses:
+        '200':
+          description: Export successful
+          headers:
+            Content-Disposition:
+              description: Suggests filename for downloaded file
+              schema:
+                type: string
+                example: 'attachment; filename="opensearch-dashboards-dashboards.2024-01-15-12-30-45.json"'
+            Content-Type:
+              description: Content type of response
+              schema:
+                type: string
+                example: application/json
+            Content-Length:
+              description: Size of the response body in bytes
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  version:
+                    type: string
+                    description: OpenSearch Dashboards version
+                  objects:
+                    type: array
+                    description: Array of exported dashboard objects and their dependencies
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                        type:
+                          type: string
+                        attributes:
+                          type: object
+                        references:
+                          type: array
+                          items:
+                            type: object
+              examples:
+                singleDashboard:
+                  summary: Export a single dashboard
+                  value:
+                    version: "2.9.0"
+                    objects:
+                      - id: "7adfa750-4c81-11e8-b3d7-01146121b73d"
+                        type: "dashboard"
+                        attributes:
+                          title: "Sample Dashboard"
+                          panelsJSON: "[{\"version\":\"2.9.0\",\"gridData\":{\"x\":0,\"y\":0,\"w\":24,\"h\":15}}]"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/400_bad_request'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+  /api/opensearch-dashboards/dashboards/import:
+    post:
+      tags:
+        - legacy-export
+      summary: Import dashboards in legacy format
+      description: Import dashboards from a legacy format JSON payload. Can optionally force overwrite and exclude specific object types.
+      operationId: importDashboards
+      parameters:
+        - name: force
+          in: query
+          description: If true, overwrites existing saved objects with the same type and ID
+          schema:
+            type: boolean
+            default: false
+          example: false
+        - name: exclude
+          in: query
+          description: Object type(s) to exclude from import. Can be a single type or an array of types.
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+            default: []
+          example: "index-pattern"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - objects
+              properties:
+                objects:
+                  type: array
+                  description: Array of saved objects to import
+                  items:
+                    type: object
+                    additionalProperties: true
+                version:
+                  type: string
+                  description: Version string (optional)
+            examples:
+              importDashboard:
+                summary: Import a dashboard with visualization
+                value:
+                  version: "2.9.0"
+                  objects:
+                    - id: "7adfa750-4c81-11e8-b3d7-01146121b73d"
+                      type: "dashboard"
+                      attributes:
+                        title: "Sample Dashboard"
+                        panelsJSON: "[{\"version\":\"2.9.0\",\"gridData\":{\"x\":0,\"y\":0,\"w\":24,\"h\":15}}]"
+                      references: []
+      responses:
+        '200':
+          description: Import successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    description: Whether the import was successful
+                  objects:
+                    type: array
+                    description: Imported objects
+                    items:
+                      type: object
+              examples:
+                successfulImport:
+                  summary: Successful import
+                  value:
+                    success: true
+                    objects:
+                      - id: "7adfa750-4c81-11e8-b3d7-01146121b73d"
+                        type: "dashboard"
+                        meta:
+                          title: "Sample Dashboard"
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/400_bad_request'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+components:
+  schemas:
+    400_bad_request:
+      title: Bad request
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Bad Request
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 400

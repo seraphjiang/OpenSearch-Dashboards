@@ -1,0 +1,376 @@
+openapi: 3.0.3
+info:
+  version: v1
+  title: OpenSearch Dashboards Data Source API
+  contact:
+    name: OpenSearch Dashboards Team
+  description: |-
+    OpenAPI schema for OpenSearch Dashboards Data Source API.
+
+    This plugin manages multiple data source connections, enabling OpenSearch Dashboards to connect to different OpenSearch clusters. It supports various authentication methods including NoAuth, username/password, and AWS SigV4.
+tags:
+  - name: data source
+    description: Validate data source connections and fetch metadata from remote OpenSearch clusters
+servers:
+  - url: http://localhost:5601
+components:
+  schemas:
+    400_bad_request:
+      title: Bad request
+      type: object
+      required:
+        - error
+        - message
+        - statusCode
+      properties:
+        error:
+          type: string
+          enum:
+            - Bad Request
+        message:
+          type: string
+        statusCode:
+          type: integer
+          enum:
+            - 400
+    DataSourceAuthNoAuth:
+      type: object
+      required:
+        - type
+        - credentials
+      properties:
+        type:
+          type: string
+          enum:
+            - no_auth
+        credentials:
+          type: object
+    DataSourceAuthUsernamePassword:
+      type: object
+      required:
+        - type
+        - credentials
+      properties:
+        type:
+          type: string
+          enum:
+            - username_password
+        credentials:
+          type: object
+          required:
+            - username
+            - password
+          properties:
+            username:
+              type: string
+            password:
+              type: string
+              format: password
+    DataSourceAuthSigV4:
+      type: object
+      required:
+        - type
+        - credentials
+      properties:
+        type:
+          type: string
+          enum:
+            - sigv4
+        credentials:
+          type: object
+          required:
+            - region
+            - accessKey
+            - secretKey
+            - service
+          properties:
+            region:
+              type: string
+              description: AWS region
+              example: us-east-1
+            accessKey:
+              type: string
+              description: AWS access key ID
+            secretKey:
+              type: string
+              format: password
+              description: AWS secret access key
+            service:
+              type: string
+              enum:
+                - es
+                - aoss
+              description: AWS service name (es for OpenSearch, aoss for OpenSearch Serverless)
+    DataSourceAuthCustom:
+      type: object
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          description: Custom authentication type registered via auth registry
+        credentials:
+          nullable: true
+          description: Custom credentials structure defined by the authentication method
+    DataSourceAttributes:
+      type: object
+      required:
+        - endpoint
+      properties:
+        endpoint:
+          type: string
+          format: uri
+          description: Data source endpoint URL
+          example: https://opensearch-cluster.example.com:9200
+        auth:
+          oneOf:
+            - $ref: '#/components/schemas/DataSourceAuthNoAuth'
+            - $ref: '#/components/schemas/DataSourceAuthUsernamePassword'
+            - $ref: '#/components/schemas/DataSourceAuthSigV4'
+            - $ref: '#/components/schemas/DataSourceAuthCustom'
+          description: Authentication configuration for the data source
+    TestConnectionRequest:
+      type: object
+      required:
+        - dataSourceAttr
+      properties:
+        id:
+          type: string
+          description: Optional data source ID for testing existing data source
+        dataSourceAttr:
+          $ref: '#/components/schemas/DataSourceAttributes'
+    FetchMetadataRequest:
+      type: object
+      required:
+        - dataSourceAttr
+      properties:
+        id:
+          type: string
+          description: Optional data source ID for fetching metadata from existing data source
+        dataSourceAttr:
+          $ref: '#/components/schemas/DataSourceAttributes'
+    ErrorResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Error message
+        attributes:
+          type: object
+          properties:
+            error:
+              type: string
+              description: Detailed error information
+paths:
+  /internal/data-source-management/validate:
+    post:
+      tags:
+        - data source
+      summary: Test data source connection
+      operationId: testConnection
+      description: |-
+        Validate a data source connection by attempting to connect and verify connectivity.
+
+        For standard OpenSearch clusters, this endpoint calls the cluster info API.
+        For OpenSearch Serverless, it uses the cat.indices API since info is not supported.
+
+        The endpoint validates the provided endpoint URL against security policies before attempting connection.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TestConnectionRequest'
+            examples:
+              noAuth:
+                summary: Test connection with no authentication
+                value:
+                  dataSourceAttr:
+                    endpoint: https://localhost:9200
+                    auth:
+                      type: no_auth
+                      credentials: {}
+              usernamePassword:
+                summary: Test connection with username/password
+                value:
+                  dataSourceAttr:
+                    endpoint: https://opensearch.example.com:9200
+                    auth:
+                      type: username_password
+                      credentials:
+                        username: admin
+                        password: admin123
+              sigv4:
+                summary: Test connection with AWS SigV4
+                value:
+                  dataSourceAttr:
+                    endpoint: https://search-domain.us-east-1.es.amazonaws.com
+                    auth:
+                      type: sigv4
+                      credentials:
+                        region: us-east-1
+                        accessKey: AKIAIOSFODNN7EXAMPLE
+                        secretKey: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+                        service: es
+              sigv4Serverless:
+                summary: Test connection to OpenSearch Serverless
+                value:
+                  dataSourceAttr:
+                    endpoint: https://collection.us-east-1.aoss.amazonaws.com
+                    auth:
+                      type: sigv4
+                      credentials:
+                        region: us-east-1
+                        accessKey: AKIAIOSFODNN7EXAMPLE
+                        secretKey: wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY
+                        service: aoss
+      responses:
+        '200':
+          description: Connection test successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    enum:
+                      - true
+              examples:
+                success:
+                  value:
+                    success: true
+        '400':
+          description: Bad request - endpoint validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidEndpoint:
+                  value:
+                    message: Test connection endpoint validation failed
+        '500':
+          description: Connection test failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                connectionFailed:
+                  value:
+                    message: Connection failed
+                    attributes:
+                      error: connect ECONNREFUSED 127.0.0.1:9200
+  /internal/data-source-management/fetchDataSourceMetaData:
+    post:
+      tags:
+        - data source
+      summary: Fetch data source metadata
+      operationId: fetchDataSourceMetadata
+      description: |-
+        Retrieve metadata about a data source including version, engine type, and installed plugins.
+
+        This endpoint connects to the data source and gathers:
+        - Data source version
+        - Engine type (OpenSearch, Elasticsearch, or OpenSearch Serverless)
+        - List of installed plugins
+
+        For OpenSearch Serverless, version and plugin information may not be available.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FetchMetadataRequest'
+            examples:
+              noAuth:
+                summary: Fetch metadata with no authentication
+                value:
+                  dataSourceAttr:
+                    endpoint: https://localhost:9200
+                    auth:
+                      type: no_auth
+                      credentials: {}
+              usernamePassword:
+                summary: Fetch metadata with username/password
+                value:
+                  dataSourceAttr:
+                    endpoint: https://opensearch.example.com:9200
+                    auth:
+                      type: username_password
+                      credentials:
+                        username: admin
+                        password: admin123
+              existingDataSource:
+                summary: Fetch metadata for existing data source by ID
+                value:
+                  id: 550e8400-e29b-41d4-a716-446655440000
+                  dataSourceAttr:
+                    endpoint: https://opensearch.example.com:9200
+                    auth:
+                      type: no_auth
+                      credentials: {}
+      responses:
+        '200':
+          description: Metadata fetched successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dataSourceVersion:
+                    type: string
+                    description: Version of the data source (empty for OpenSearch Serverless)
+                  dataSourceEngineType:
+                    type: string
+                    description: Engine type
+                    enum:
+                      - OpenSearch
+                      - Elasticsearch
+                      - OpenSearchServerless
+                      - NA
+                  installedPlugins:
+                    type: array
+                    items:
+                      type: string
+                    description: List of installed plugin names
+              examples:
+                opensearch:
+                  summary: OpenSearch cluster metadata
+                  value:
+                    dataSourceVersion: 2.12.0
+                    dataSourceEngineType: OpenSearch
+                    installedPlugins:
+                      - opensearch-security
+                      - opensearch-sql
+                      - opensearch-alerting
+                      - opensearch-anomaly-detection
+                elasticsearch:
+                  summary: Elasticsearch cluster metadata
+                  value:
+                    dataSourceVersion: 7.10.2
+                    dataSourceEngineType: Elasticsearch
+                    installedPlugins:
+                      - analysis-icu
+                      - ingest-geoip
+                serverless:
+                  summary: OpenSearch Serverless metadata
+                  value:
+                    dataSourceVersion: ''
+                    dataSourceEngineType: OpenSearchServerless
+                    installedPlugins: []
+        '500':
+          description: Failed to fetch metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                error:
+                  value:
+                    message: Failed to fetch data source metadata
+                    attributes:
+                      error: Connection timeout

@@ -1,0 +1,801 @@
+{
+  "metadata": {
+    "generated": "2026-03-19",
+    "description": "OpenSearch JS client usage patterns in OpenSearch Dashboards",
+    "client_package": "@opensearch-project/opensearch",
+    "total_files_scanned": 150,
+    "total_files_with_client_usage": 96
+  },
+  "client_architecture": {
+    "core_client_setup": {
+      "location": "src/core/server/opensearch/client/cluster_client.ts",
+      "description": "ClusterClient wraps @opensearch-project/opensearch Client. Creates internal and scoped clients with optional long numerals support.",
+      "client_types": {
+        "asInternalUser": "Pre-configured client for internal OSD operations (no user auth headers)",
+        "asScoped(request)": "Creates IScopedClusterClient bound to user request, forwarding auth headers",
+        "asCurrentUser": "Scoped client property that includes user auth headers (via ScopedClusterClient)",
+        "transport.request": "Low-level transport for arbitrary HTTP requests to OpenSearch"
+      },
+      "type_definition": "src/core/server/opensearch/client/types.ts",
+      "type_name": "OpenSearchClient (Omit<OpenSearchDashboardsClient, 'connectionPool' | 'transport' | 'serializer' | 'extend' | 'child' | 'close'>)"
+    },
+    "legacy_client": {
+      "location": "src/core/server/opensearch/legacy/cluster_client.ts",
+      "description": "Legacy client using callAsInternalUser/callAsCurrentUser pattern (deprecated)",
+      "methods": ["callAsInternalUser(endpoint, params)", "callAsCurrentUser(endpoint, params)"]
+    },
+    "scoped_client": {
+      "location": "src/core/server/opensearch/client/scoped_cluster_client.ts",
+      "description": "Provides asInternalUser and asCurrentUser properties for scoped operations"
+    },
+    "config": {
+      "location": "src/core/server/opensearch/client/client_config.ts",
+      "description": "Client configuration including requestHeadersWhitelist, customHeaders, SSL settings"
+    }
+  },
+  "opensearch_api_usage": {
+    "document_apis": {
+      "search": {
+        "opensearch_api": "POST /{index}/_search",
+        "usage_count": 8,
+        "locations": [
+          {
+            "file": "src/core/server/saved_objects/migrations/core/opensearch_index.ts",
+            "context": "Saved objects migration - reading documents with scroll",
+            "example": "client.search({ body, index, scroll, size })"
+          },
+          {
+            "file": "src/plugins/data/server/search/opensearch_search/opensearch_search_strategy.ts:90",
+            "context": "Core search strategy - executes user search queries with abort signal support",
+            "example": "shimAbortSignal(client.search(params), options?.abortSignal)"
+          },
+          {
+            "file": "src/plugins/region_map/server/routes/opensearch.ts:86",
+            "context": "Region map plugin - searching for geo data",
+            "example": "client.search(params)"
+          },
+          {
+            "file": "src/plugins/index_pattern_management/server/routes/preview_scripted_field.ts:59",
+            "context": "Preview scripted field results",
+            "example": "client.search({ index, body: { query, size, _source, script_fields } })"
+          },
+          {
+            "file": "src/plugins/application_config/server/opensearch_config_client.ts:119",
+            "context": "Application config - searching config index",
+            "example": "client.asInternalUser.search({ index: configurationIndexName })"
+          },
+          {
+            "file": "src/core/server/config/service/config_store_client/opensearch_config_store_client.ts:162",
+            "context": "Dynamic config store - listing all configs",
+            "example": "client.search<ConfigDocument>({ index, body: { size, query: { match_all: {} } } })"
+          },
+          {
+            "file": "packages/osd-opensearch-archiver/src/lib/docs/generate_doc_records_stream.ts:60",
+            "context": "OpenSearch archiver - exporting documents",
+            "example": "client.search({ index, body: { size }, scroll, rest_total_hits_as_int: true })"
+          },
+          {
+            "file": "src/plugins/data/server/autocomplete/value_suggestions_route.ts:91",
+            "context": "Value suggestions for autocomplete (legacy client)",
+            "example": "client.callAsCurrentUser('search', { index, body }, { signal })"
+          }
+        ]
+      },
+      "msearch": {
+        "opensearch_api": "POST /_msearch",
+        "usage_count": 1,
+        "locations": [
+          {
+            "file": "src/plugins/data/server/search/routes/call_msearch.ts",
+            "context": "Multi-search for batch query execution"
+          }
+        ]
+      },
+      "scroll": {
+        "opensearch_api": "POST /_search/scroll",
+        "usage_count": 2,
+        "locations": [
+          {
+            "file": "src/core/server/saved_objects/migrations/core/opensearch_index.ts:99",
+            "context": "Saved objects migration - scrolling through documents",
+            "example": "client.scroll<SavedObjectsRawDocSource>({ scroll, scroll_id: scrollId })"
+          },
+          {
+            "file": "packages/osd-opensearch-archiver/src/lib/docs/generate_doc_records_stream.ts:73",
+            "context": "OpenSearch archiver - scroll continuation"
+          }
+        ]
+      },
+      "clearScroll": {
+        "opensearch_api": "DELETE /_search/scroll",
+        "usage_count": 1,
+        "locations": [
+          {
+            "file": "src/core/server/saved_objects/migrations/core/opensearch_index.ts:109",
+            "context": "Cleanup scroll context after migration read",
+            "example": "client.clearScroll({ scroll_id: scrollId })"
+          }
+        ]
+      },
+      "index": {
+        "opensearch_api": "PUT /{index}/_doc/{id}",
+        "usage_count": 8,
+        "locations": [
+          {
+            "file": "src/core/server/saved_objects/service/lib/repository.ts:311",
+            "context": "Saved objects repository - creating/overwriting documents",
+            "example": "this.client.index({ id, index, refresh, body })"
+          },
+          {
+            "file": "src/plugins/data_importer/server/processors/csv_processor.ts:44",
+            "context": "CSV data import - indexing parsed rows"
+          },
+          {
+            "file": "src/plugins/data_importer/server/processors/json_processor.ts:32",
+            "context": "JSON data import - indexing parsed objects"
+          },
+          {
+            "file": "src/plugins/data_importer/server/processors/ndjson_processor.ts:59",
+            "context": "NDJSON data import - indexing parsed lines"
+          },
+          {
+            "file": "src/plugins/application_config/server/opensearch_config_client.ts:64",
+            "context": "Application config - updating config values",
+            "example": "client.asCurrentUser.index({ index, id, body: { value } })"
+          }
+        ]
+      },
+      "create": {
+        "opensearch_api": "PUT /{index}/_create/{id}",
+        "usage_count": 3,
+        "locations": [
+          {
+            "file": "src/core/server/saved_objects/service/lib/repository.ts:312",
+            "context": "Saved objects repository - creating new documents (no overwrite)",
+            "example": "this.client.create({ id, index, refresh, body })"
+          },
+          {
+            "file": "packages/osd-opensearch-archiver/src/lib/indices/opensearch_dashboards_index.ts:167",
+            "context": "OpenSearch archiver - creating Dashboards index documents"
+          }
+        ]
+      },
+      "bulk": {
+        "opensearch_api": "POST /_bulk",
+        "usage_count": 5,
+        "locations": [
+          {
+            "file": "src/core/server/saved_objects/service/lib/repository.ts:487",
+            "context": "Saved objects repository - bulk create operations"
+          },
+          {
+            "file": "src/core/server/saved_objects/service/lib/repository.ts:1507",
+            "context": "Saved objects repository - bulk update operations"
+          },
+          {
+            "file": "src/core/server/saved_objects/migrations/core/opensearch_index.ts:134",
+            "context": "Saved objects migration - bulk writing migrated documents"
+          },
+          {
+            "file": "packages/osd-opensearch-archiver/src/lib/docs/index_doc_records_stream.ts:61",
+            "context": "OpenSearch archiver - bulk indexing archived documents",
+            "example": "client.bulk({ body }, { requestTimeout: 2 * 60 * 1000 })"
+          },
+          {
+            "file": "packages/osd-agents/src/opensearch_ingestion.ts:392",
+            "context": "Agent ingestion - bulk indexing agent data"
+          },
+          {
+            "file": "src/core/server/config/service/config_store_client/opensearch_config_store_client.ts:319",
+            "context": "Dynamic config store - bulk create/update configs",
+            "example": "client.bulk<ConfigDocument>({ index, body: bulkConfigs })"
+          }
+        ]
+      },
+      "get": {
+        "opensearch_api": "GET /{index}/_doc/{id}",
+        "usage_count": 2,
+        "locations": [
+          {
+            "file": "src/plugins/application_config/server/opensearch_config_client.ts:39",
+            "context": "Application config - get entity config by ID",
+            "example": "client.asInternalUser.get({ index, id })"
+          },
+          {
+            "file": "test/api_integration/apis/telemetry/telemetry_optin_notice_seen.ts:59",
+            "context": "Integration test - retrieving telemetry document"
+          }
+        ]
+      },
+      "mget": {
+        "opensearch_api": "POST /_mget",
+        "usage_count": 4,
+        "locations": [
+          {
+            "file": "src/core/server/saved_objects/service/lib/repository.ts:385",
+            "context": "Saved objects repository - bulk create pre-check for existing docs"
+          },
+          {
+            "file": "src/core/server/saved_objects/service/lib/repository.ts:568",
+            "context": "Saved objects repository - checking docs during delete"
+          },
+          {
+            "file": "src/core/server/saved_objects/service/lib/repository.ts:975",
+            "context": "Saved objects repository - bulk get documents"
+          },
+          {
+            "file": "src/core/server/saved_objects/service/lib/repository.ts:1416",
+            "context": "Saved objects repository - bulk update pre-check"
+          }
+        ]
+      },
+      "update": {
+        "opensearch_api": "POST /{index}/_update/{id}",
+        "usage_count": 2,
+        "locations": [
+          {
+            "file": "src/core/server/saved_objects/service/lib/repository.ts:1200",
+            "context": "Saved objects repository - updating a single document"
+          },
+          {
+            "file": "src/core/server/saved_objects/service/lib/repository.ts:1266",
+            "context": "Saved objects repository - adding namespaces to multi-namespace types"
+          }
+        ]
+      },
+      "delete": {
+        "opensearch_api": "DELETE /{index}/_doc/{id}",
+        "usage_count": 2,
+        "locations": [
+          {
+            "file": "src/plugins/application_config/server/opensearch_config_client.ts:88",
+            "context": "Application config - deleting config entity",
+            "example": "client.asCurrentUser.delete({ index, id })"
+          },
+          {
+            "file": "test/api_integration/apis/telemetry/telemetry_optin_notice_seen.ts:43",
+            "context": "Integration test - deleting telemetry document"
+          }
+        ]
+      },
+      "deleteByQuery": {
+        "opensearch_api": "POST /{index}/_delete_by_query",
+        "usage_count": 3,
+        "locations": [
+          {
+            "file": "src/core/server/saved_objects/migrations/core/index_migrator.ts:200",
+            "context": "Saved objects migration - removing obsolete document types"
+          },
+          {
+            "file": "packages/osd-opensearch-archiver/src/lib/indices/opensearch_dashboards_index.ts:131",
+            "context": "OpenSearch archiver - clearing index documents by type"
+          },
+          {
+            "file": "src/core/server/config/service/config_store_client/opensearch_config_store_client.ts:334",
+            "context": "Dynamic config store - deleting configs by name"
+          }
+        ]
+      },
+      "updateByQuery": {
+        "opensearch_api": "POST /{index}/_update_by_query",
+        "usage_count": 2,
+        "locations": [
+          {
+            "file": "src/core/server/saved_objects/service/lib/repository.ts:686",
+            "context": "Saved objects repository - deleteByNamespace (uses painless script to remove namespaces)"
+          },
+          {
+            "file": "src/core/server/saved_objects/service/lib/repository.ts:735",
+            "context": "Saved objects repository - deleteByWorkspace (uses painless script)"
+          }
+        ]
+      },
+      "reindex": {
+        "opensearch_api": "POST /_reindex",
+        "usage_count": 1,
+        "locations": [
+          {
+            "file": "src/core/server/saved_objects/migrations/core/opensearch_index.ts:357",
+            "context": "Saved objects migration - reindexing during index alias conversion",
+            "example": "client.reindex({ body: { source: { index, size }, dest: { index }, script }, refresh: true, wait_for_completion: false })"
+          }
+        ]
+      }
+    },
+    "index_apis": {
+      "indices.create": {
+        "opensearch_api": "PUT /{index}",
+        "usage_count": 6,
+        "locations": [
+          {
+            "file": "src/core/server/saved_objects/migrations/core/opensearch_index.ts:233",
+            "context": "Saved objects migration - creating new index"
+          },
+          {
+            "file": "src/core/server/saved_objects/migrations/core/opensearch_index.ts:259",
+            "context": "Saved objects migration - creating index during alias conversion"
+          },
+          {
+            "file": "src/core/server/config/service/config_store_client/opensearch_config_store_client.ts:64",
+            "context": "Dynamic config - creating config index with alias"
+          },
+          {
+            "file": "packages/osd-opensearch-archiver/src/lib/indices/create_index_stream.ts:89",
+            "context": "OpenSearch archiver - recreating archived indices"
+          },
+          {
+            "file": "packages/osd-agents/src/opensearch_ingestion.ts:125",
+            "context": "Agent ingestion - creating ingestion index"
+          },
+          {
+            "file": "src/plugins/data_importer/server/routes/import_file.ts:129",
+            "context": "Data importer - creating index for imported data"
+          }
+        ]
+      },
+      "indices.delete": {
+        "opensearch_api": "DELETE /{index}",
+        "usage_count": 2,
+        "locations": [
+          {
+            "file": "packages/osd-opensearch-archiver/src/lib/indices/delete_index.ts:55",
+            "context": "OpenSearch archiver - deleting indices"
+          },
+          {
+            "file": "src/core/server/saved_objects/migrations/core/opensearch_index.ts:240",
+            "context": "Saved objects migration - deleting old index"
+          }
+        ]
+      },
+      "indices.get": {
+        "opensearch_api": "GET /{index}",
+        "usage_count": 2,
+        "locations": [
+          {
+            "file": "src/core/server/saved_objects/migrations/core/opensearch_index.ts:62",
+            "context": "Saved objects migration - fetching index info"
+          },
+          {
+            "file": "packages/osd-opensearch-archiver/src/lib/indices/generate_index_records_stream.ts:41",
+            "context": "OpenSearch archiver - getting index metadata for export"
+          }
+        ]
+      },
+      "indices.exists": {
+        "opensearch_api": "HEAD /{index}",
+        "usage_count": 3,
+        "locations": [
+          {
+            "file": "packages/osd-agents/src/opensearch_ingestion.ts:123",
+            "context": "Agent ingestion - check if index exists"
+          },
+          {
+            "file": "src/plugins/data_importer/server/routes/preview.ts:75",
+            "context": "Data importer - check if target index exists"
+          },
+          {
+            "file": "src/plugins/data_importer/server/routes/import_file.ts:83",
+            "context": "Data importer - check if target index exists before import"
+          }
+        ]
+      },
+      "indices.existsAlias": {
+        "opensearch_api": "HEAD /_alias/{name}",
+        "usage_count": 1,
+        "locations": [
+          {
+            "file": "src/core/server/config/service/config_store_client/opensearch_config_store_client.ts:57",
+            "context": "Dynamic config - checking if config alias exists"
+          }
+        ]
+      },
+      "indices.getAlias": {
+        "opensearch_api": "GET /{index}/_alias/{name}",
+        "usage_count": 3,
+        "locations": [
+          {
+            "file": "packages/osd-opensearch-archiver/src/lib/indices/delete_index.ts:49",
+            "context": "OpenSearch archiver - resolving alias to concrete indices"
+          },
+          {
+            "file": "packages/osd-opensearch-archiver/src/lib/indices/generate_index_records_stream.ts:59",
+            "context": "OpenSearch archiver - getting alias information for export"
+          },
+          {
+            "file": "src/core/server/saved_objects/migrations/core/opensearch_index.ts:285",
+            "context": "Saved objects migration - checking existing aliases"
+          }
+        ]
+      },
+      "indices.updateAliases": {
+        "opensearch_api": "POST /_aliases",
+        "usage_count": 4,
+        "locations": [
+          {
+            "file": "src/core/server/saved_objects/migrations/core/opensearch_index.ts:289",
+            "context": "Saved objects migration - updating alias to point to new index"
+          },
+          {
+            "file": "src/core/server/config/service/config_store_client/opensearch_config_store_client.ts:71",
+            "context": "Dynamic config - adding alias to config index"
+          },
+          {
+            "file": "src/plugins/data_importer/server/routes/import_file.ts:155",
+            "context": "Data importer - creating alias for imported index"
+          },
+          {
+            "file": "src/plugins/data_importer/server/routes/import_text.ts:164",
+            "context": "Data importer - creating alias for text-imported index"
+          }
+        ]
+      },
+      "indices.putSettings": {
+        "opensearch_api": "PUT /{index}/_settings",
+        "usage_count": 1,
+        "locations": [
+          {
+            "file": "packages/osd-opensearch-archiver/src/lib/indices/opensearch_dashboards_index.ts:53",
+            "context": "OpenSearch archiver - updating Dashboards index settings"
+          }
+        ]
+      },
+      "indices.putMapping": {
+        "opensearch_api": "PUT /{index}/_mapping",
+        "usage_count": 1,
+        "locations": [
+          {
+            "file": "packages/osd-opensearch-archiver/src/lib/indices/opensearch_dashboards_index.ts:84",
+            "context": "OpenSearch archiver - updating index mappings"
+          }
+        ]
+      },
+      "indices.getMapping": {
+        "opensearch_api": "GET /{index}/_mapping",
+        "usage_count": 2,
+        "locations": [
+          {
+            "file": "src/plugins/data_importer/server/routes/preview.ts:117",
+            "context": "Data importer - getting existing index mapping"
+          },
+          {
+            "file": "src/plugins/region_map/server/routes/opensearch.ts:120",
+            "context": "Region map - getting index mappings for geo fields"
+          }
+        ]
+      },
+      "indices.refresh": {
+        "opensearch_api": "POST /{index}/_refresh",
+        "usage_count": 2,
+        "locations": [
+          {
+            "file": "src/core/server/saved_objects/migrations/core/opensearch_index.ts:295",
+            "context": "Saved objects migration - refreshing after alias claim"
+          },
+          {
+            "file": "packages/osd-opensearch-archiver/src/actions/load.ts:115",
+            "context": "OpenSearch archiver - refreshing after load"
+          }
+        ]
+      },
+      "indices.deleteTemplate": {
+        "opensearch_api": "DELETE /_template/{name}",
+        "usage_count": 1,
+        "locations": [
+          {
+            "file": "src/core/server/saved_objects/migrations/core/index_migrator.ts:173",
+            "context": "Saved objects migration - removing obsolete templates"
+          }
+        ]
+      }
+    },
+    "cluster_apis": {
+      "cluster.state": {
+        "opensearch_api": "GET /_cluster/state/{metric}",
+        "usage_count": 1,
+        "locations": [
+          {
+            "file": "src/core/server/opensearch/version_check/ensure_opensearch_version.ts:77",
+            "context": "Health check - getting cluster state to determine node cluster IDs",
+            "example": "internalClient.cluster.state({ metric: 'nodes', local: true, filter_path: [path] })"
+          }
+        ]
+      },
+      "cluster.getSettings": {
+        "opensearch_api": "GET /_cluster/settings",
+        "usage_count": 1,
+        "locations": [
+          {
+            "file": "src/plugins/data_importer/server/utils/util.ts:98",
+            "context": "Data importer - getting cluster settings"
+          }
+        ]
+      }
+    },
+    "cat_apis": {
+      "cat.indices": {
+        "opensearch_api": "GET /_cat/indices",
+        "usage_count": 3,
+        "locations": [
+          {
+            "file": "packages/osd-opensearch-archiver/src/lib/indices/opensearch_dashboards_index.ts:101",
+            "context": "OpenSearch archiver - listing Dashboards indices"
+          },
+          {
+            "file": "src/plugins/region_map/server/routes/opensearch.ts:46",
+            "context": "Region map - listing indices for geo data"
+          },
+          {
+            "file": "src/plugins/data_importer/server/routes/cat_indices.ts:31",
+            "context": "Data importer - listing available indices"
+          },
+          {
+            "file": "src/core/server/config/service/config_store_client/opensearch_config_store_client.ts:385",
+            "context": "Dynamic config - searching for latest config index"
+          }
+        ]
+      },
+      "cat.plugins": {
+        "opensearch_api": "GET /_cat/plugins",
+        "usage_count": 1,
+        "locations": [
+          {
+            "file": "src/core/server/cross_compatibility/cross_compatibility_service.ts:39",
+            "context": "Cross-compatibility check - listing installed OpenSearch plugins",
+            "example": "opensearch.client.asInternalUser.cat.plugins<any[]>({ format: 'JSON' })"
+          }
+        ]
+      }
+    },
+    "nodes_apis": {
+      "nodes.info": {
+        "opensearch_api": "GET /_nodes/{node_id}/{metric}",
+        "usage_count": 2,
+        "locations": [
+          {
+            "file": "src/core/server/opensearch/version_check/ensure_opensearch_version.ts:259",
+            "context": "Version check - getting node versions with optimized healthcheck",
+            "example": "internalClient.nodes.info<NodesInfo>({ node_id: nodeId, metric: 'process', filter_path: [...] })"
+          },
+          {
+            "file": "src/core/server/opensearch/version_check/ensure_opensearch_version.ts:274",
+            "context": "Version check - getting all node versions (non-optimized path)",
+            "example": "internalClient.nodes.info<NodesInfo>({ filter_path: ['nodes.*.version', 'nodes.*.http.publish_address', 'nodes.*.ip'] })"
+          }
+        ]
+      }
+    },
+    "tasks_apis": {
+      "tasks.get": {
+        "opensearch_api": "GET /_tasks/{task_id}",
+        "usage_count": 1,
+        "locations": [
+          {
+            "file": "src/core/server/saved_objects/migrations/core/opensearch_index.ts:379",
+            "context": "Saved objects migration - polling reindex task completion"
+          }
+        ]
+      }
+    },
+    "transport_request": {
+      "description": "Low-level transport.request() calls for APIs not covered by the client library",
+      "usage_count": 8,
+      "locations": [
+        {
+          "file": "src/plugins/console/server/routes/api/console/proxy/create_handler.ts:113",
+          "context": "Console proxy - forwarding arbitrary user requests to OpenSearch",
+          "example": "client.transport.request({ method, path, body, querystring })"
+        },
+        {
+          "file": "src/plugins/chat/server/routes/ml_routes/generic_ml_router.ts:134",
+          "context": "Chat plugin - calling ML plugin APIs (agents, models)",
+          "example": "client.transport.request({ method: 'POST', path: '/_plugins/_ml/agents/_register' })"
+        },
+        {
+          "file": "src/plugins/query_enhancements/server/routes/query_assist/agents.ts:36",
+          "context": "Query assist - executing ML agent for query generation",
+          "example": "client.transport.request({ method: 'POST', path: `/_plugins/_ml/agents/${agentId}/_execute` })"
+        },
+        {
+          "file": "src/plugins/query_enhancements/server/routes/query_assist/ppl/time_parser_utils.ts:181",
+          "context": "PPL time parser - executing ML agent for time parsing"
+        },
+        {
+          "file": "src/plugins/query_enhancements/server/routes/data_source_connection/routes.ts:147",
+          "context": "Data source connections - calling datasource management APIs"
+        },
+        {
+          "file": "src/plugins/query_enhancements/server/connections/clients/prometheus_connection_client.ts:27",
+          "context": "Prometheus connection - making requests to Prometheus via OpenSearch"
+        }
+      ]
+    },
+    "legacy_client_endpoints": {
+      "description": "Legacy client callAsCurrentUser/callAsInternalUser endpoint strings",
+      "endpoints": {
+        "search": {
+          "file": "src/plugins/data/server/autocomplete/value_suggestions_route.ts:91",
+          "context": "Value suggestions autocomplete"
+        },
+        "ppl.getDataConnectionById": {
+          "file": "src/plugins/data_source_management/server/routes/data_connections_router.ts:35",
+          "context": "PPL data connections management"
+        },
+        "ppl.deleteDataConnection": {
+          "file": "src/plugins/data_source_management/server/routes/data_connections_router.ts:65",
+          "context": "PPL data connections management"
+        },
+        "ppl.modifyDataConnection": {
+          "file": "src/plugins/data_source_management/server/routes/data_connections_router.ts:96",
+          "context": "PPL data connections management"
+        },
+        "ppl.getDataConnections": {
+          "file": "src/plugins/data_source_management/server/routes/data_connections_router.ts:159",
+          "context": "PPL data connections listing"
+        },
+        "datasourcemanagement.runDirectQuery": {
+          "file": "src/plugins/data_source_management/server/routes/datasources_router.ts:40",
+          "context": "Direct query execution via datasource management"
+        },
+        "datasourcemanagement.getJobStatus": {
+          "file": "src/plugins/data_source_management/server/routes/datasources_router.ts:79",
+          "context": "Checking async query job status"
+        },
+        "datasourcemanagement.deleteJob": {
+          "file": "src/plugins/data_source_management/server/routes/datasources_router.ts:110",
+          "context": "Deleting async query jobs"
+        },
+        "ping": {
+          "file": "test/plugin_functional/plugins/core_plugin_a/server/plugin.ts:48",
+          "context": "Plugin functional test - basic connectivity check"
+        },
+        "security.authenticate": {
+          "file": "src/core/server/opensearch/legacy/scoped_cluster_client.test.ts",
+          "context": "Legacy test - security authentication endpoint"
+        }
+      }
+    }
+  },
+  "usage_by_component": {
+    "core_saved_objects": {
+      "description": "The largest consumer of OpenSearch APIs. Saved objects repository manages all persistent objects (dashboards, visualizations, index patterns, etc.)",
+      "file": "src/core/server/saved_objects/service/lib/repository.ts",
+      "apis_used": ["index", "create", "bulk", "mget", "update", "updateByQuery", "search", "scroll", "clearScroll"],
+      "pattern": "Uses this.client (OpenSearchClient) which is a repository-scoped wrapper client"
+    },
+    "core_migrations": {
+      "description": "Saved objects migration system handles schema evolution across OSD versions",
+      "directory": "src/core/server/saved_objects/migrations/core/",
+      "apis_used": ["indices.get", "indices.create", "indices.delete", "indices.getAlias", "indices.updateAliases", "indices.refresh", "indices.deleteTemplate", "search", "scroll", "clearScroll", "bulk", "reindex", "tasks.get", "deleteByQuery"],
+      "pattern": "Uses MigrationOpenSearchClient type"
+    },
+    "core_version_check": {
+      "description": "Periodic health check ensuring OpenSearch version compatibility",
+      "file": "src/core/server/opensearch/version_check/ensure_opensearch_version.ts",
+      "apis_used": ["nodes.info", "cluster.state"],
+      "pattern": "Polls on interval using RxJS timer, uses internalClient"
+    },
+    "core_cross_compatibility": {
+      "description": "Checks installed OpenSearch plugins for compatibility with OSD plugins",
+      "file": "src/core/server/cross_compatibility/cross_compatibility_service.ts",
+      "apis_used": ["cat.plugins"],
+      "pattern": "Uses asInternalUser"
+    },
+    "core_dynamic_config": {
+      "description": "Dynamic application configuration stored in OpenSearch indices",
+      "file": "src/core/server/config/service/config_store_client/opensearch_config_store_client.ts",
+      "apis_used": ["search", "bulk", "deleteByQuery", "indices.create", "indices.existsAlias", "indices.getAlias", "indices.updateAliases", "cat.indices"],
+      "pattern": "Uses OpenSearchClient directly as internal user"
+    },
+    "plugin_application_config": {
+      "description": "Application-level configuration storage plugin",
+      "file": "src/plugins/application_config/server/opensearch_config_client.ts",
+      "apis_used": ["get", "index", "delete", "search"],
+      "pattern": "Uses IScopedClusterClient with asInternalUser for reads and asCurrentUser for writes"
+    },
+    "plugin_data_search": {
+      "description": "Core search functionality - executes user search queries",
+      "file": "src/plugins/data/server/search/opensearch_search/opensearch_search_strategy.ts",
+      "apis_used": ["search"],
+      "pattern": "Uses scoped client with abort signal support via shimAbortSignal"
+    },
+    "plugin_data_importer": {
+      "description": "Imports data from CSV, JSON, NDJSON files into OpenSearch",
+      "directory": "src/plugins/data_importer/server/",
+      "apis_used": ["index", "indices.exists", "indices.create", "indices.getMapping", "indices.updateAliases", "cat.indices", "cluster.getSettings"],
+      "pattern": "Uses scoped client from request context"
+    },
+    "plugin_query_enhancements": {
+      "description": "PPL/SQL query support, query assist AI features, data source connections",
+      "directory": "src/plugins/query_enhancements/server/",
+      "apis_used": ["transport.request"],
+      "legacy_endpoints": ["ppl.query", "sql.query"],
+      "pattern": "Uses transport.request for ML plugin APIs; legacy Facet class for PPL/SQL endpoints"
+    },
+    "plugin_data_source_management": {
+      "description": "Manages external data sources and connections",
+      "directory": "src/plugins/data_source_management/server/",
+      "apis_used": [],
+      "legacy_endpoints": ["ppl.getDataConnections", "ppl.getDataConnectionById", "ppl.deleteDataConnection", "ppl.modifyDataConnection", "datasourcemanagement.runDirectQuery", "datasourcemanagement.getJobStatus", "datasourcemanagement.deleteJob"],
+      "pattern": "Heavily uses legacy callAsCurrentUser for custom OpenSearch plugin endpoints"
+    },
+    "plugin_chat": {
+      "description": "AI chat functionality using OpenSearch ML plugin",
+      "file": "src/plugins/chat/server/routes/ml_routes/generic_ml_router.ts",
+      "apis_used": ["transport.request"],
+      "pattern": "Uses transport.request for ML plugin APIs (agent register, execute, etc.)"
+    },
+    "plugin_console": {
+      "description": "Dev tools console - proxies arbitrary requests to OpenSearch",
+      "file": "src/plugins/console/server/routes/api/console/proxy/create_handler.ts",
+      "apis_used": ["transport.request"],
+      "pattern": "Forwards user-constructed requests directly to OpenSearch via transport.request"
+    },
+    "plugin_region_map": {
+      "description": "Geo visualization plugin",
+      "file": "src/plugins/region_map/server/routes/opensearch.ts",
+      "apis_used": ["search", "cat.indices", "indices.getMapping"],
+      "pattern": "Uses scoped client for geo data queries"
+    },
+    "package_opensearch_archiver": {
+      "description": "Test utility for loading/saving OpenSearch index snapshots",
+      "directory": "packages/osd-opensearch-archiver/",
+      "apis_used": ["search", "scroll", "bulk", "create", "deleteByQuery", "indices.create", "indices.delete", "indices.get", "indices.getAlias", "indices.putSettings", "indices.putMapping", "indices.refresh", "cat.indices"],
+      "pattern": "Uses OpenSearchClient directly, comprehensive index management"
+    },
+    "package_osd_agents": {
+      "description": "Agent framework for OpenSearch Dashboards",
+      "file": "packages/osd-agents/src/opensearch_ingestion.ts",
+      "apis_used": ["bulk", "indices.exists", "indices.create"],
+      "pattern": "Uses OpenSearchClient for agent data ingestion"
+    }
+  },
+  "client_access_patterns": {
+    "new_client_via_request_context": {
+      "description": "Most common pattern in route handlers - get scoped client from request context",
+      "example": "const client = context.core.opensearch.client.asCurrentUser;",
+      "used_in": "Route handlers in plugins"
+    },
+    "new_client_internal": {
+      "description": "Internal operations not tied to a user request",
+      "example": "opensearch.client.asInternalUser",
+      "used_in": "Background tasks, migrations, health checks"
+    },
+    "new_client_scoped": {
+      "description": "Creating scoped client from cluster client",
+      "example": "const scopedClient = clusterClient.asScoped(request);",
+      "used_in": "Core services that need both internal and user-scoped access"
+    },
+    "legacy_callAsCurrentUser": {
+      "description": "Deprecated pattern - string-based endpoint calling",
+      "example": "client.callAsCurrentUser('search', { index, body })",
+      "used_in": "Older plugins (data_source_management, autocomplete)"
+    },
+    "transport_request": {
+      "description": "Low-level HTTP for OpenSearch plugin APIs not in standard client",
+      "example": "client.transport.request({ method: 'POST', path: '/_plugins/_ml/agents/...' })",
+      "used_in": "Console proxy, ML/AI features (chat, query assist)"
+    },
+    "data_source_plugin_client": {
+      "description": "Multi-datasource support - creates clients for remote OpenSearch clusters",
+      "location": "src/plugins/data_source/server/client/",
+      "pattern": "configureClient() creates new Client instances per data source with separate auth"
+    }
+  },
+  "summary": {
+    "total_unique_opensearch_apis": 32,
+    "document_apis": ["search", "msearch", "scroll", "clearScroll", "index", "create", "bulk", "get", "mget", "update", "delete", "deleteByQuery", "updateByQuery", "reindex"],
+    "index_apis": ["indices.create", "indices.delete", "indices.get", "indices.exists", "indices.existsAlias", "indices.getAlias", "indices.updateAliases", "indices.putSettings", "indices.putMapping", "indices.getMapping", "indices.refresh", "indices.deleteTemplate"],
+    "cluster_apis": ["cluster.state", "cluster.getSettings"],
+    "cat_apis": ["cat.indices", "cat.plugins"],
+    "node_apis": ["nodes.info"],
+    "task_apis": ["tasks.get"],
+    "transport_apis": ["transport.request"],
+    "legacy_custom_endpoints": ["ppl.getDataConnections", "ppl.getDataConnectionById", "ppl.deleteDataConnection", "ppl.modifyDataConnection", "datasourcemanagement.runDirectQuery", "datasourcemanagement.getJobStatus", "datasourcemanagement.deleteJob", "security.authenticate"],
+    "heaviest_consumers": [
+      "Saved Objects Repository (search, index, create, bulk, mget, update, updateByQuery)",
+      "Saved Objects Migrations (indices.*, search, scroll, bulk, reindex, tasks.get, deleteByQuery)",
+      "Dynamic Config Store (search, bulk, deleteByQuery, indices.*, cat.indices)",
+      "OpenSearch Archiver (search, scroll, bulk, create, deleteByQuery, indices.*)"
+    ]
+  }
+}

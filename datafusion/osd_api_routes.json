@@ -1,0 +1,1197 @@
+{
+  "metadata": {
+    "generated_at": "2026-03-19",
+    "total_routes": 120,
+    "source": "OpenSearch Dashboards codebase scan",
+    "scanned_files": 97
+  },
+  "routes": [
+    {
+      "plugin": "core/saved_objects",
+      "path": "/api/saved_objects/_bulk_create",
+      "method": "POST",
+      "description": "Bulk create saved objects",
+      "params": {},
+      "query": { "overwrite": "boolean (default: false)", "workspaces": "string | string[]" },
+      "body": "array of { type, id?, attributes, version?, migrationVersion?, references?, initialNamespaces? }",
+      "file": "src/core/server/saved_objects/routes/bulk_create.ts"
+    },
+    {
+      "plugin": "core/saved_objects",
+      "path": "/api/saved_objects/_bulk_get",
+      "method": "POST",
+      "description": "Bulk get saved objects by type and id",
+      "params": {},
+      "query": {},
+      "body": "array of { type, id, fields? }",
+      "file": "src/core/server/saved_objects/routes/bulk_get.ts"
+    },
+    {
+      "plugin": "core/saved_objects",
+      "path": "/api/saved_objects/_bulk_update",
+      "method": "PUT",
+      "description": "Bulk update saved objects",
+      "params": {},
+      "query": {},
+      "body": "array of { type, id, attributes, version?, references?, namespace? }",
+      "file": "src/core/server/saved_objects/routes/bulk_update.ts"
+    },
+    {
+      "plugin": "core/saved_objects",
+      "path": "/api/saved_objects/{type}/{id?}",
+      "method": "POST",
+      "description": "Create a saved object",
+      "params": { "type": "string", "id": "string (optional)" },
+      "query": { "overwrite": "boolean (default: false)" },
+      "body": "{ attributes, migrationVersion?, references?, initialNamespaces?, workspaces? }",
+      "file": "src/core/server/saved_objects/routes/create.ts"
+    },
+    {
+      "plugin": "core/saved_objects",
+      "path": "/api/saved_objects/{type}/{id}",
+      "method": "DELETE",
+      "description": "Delete a saved object",
+      "params": { "type": "string", "id": "string" },
+      "query": { "force": "boolean (optional)" },
+      "body": null,
+      "file": "src/core/server/saved_objects/routes/delete.ts"
+    },
+    {
+      "plugin": "core/saved_objects",
+      "path": "/api/saved_objects/_export",
+      "method": "POST",
+      "description": "Export saved objects to NDJSON stream",
+      "params": {},
+      "query": {},
+      "body": "{ type?, objects?, search?, includeReferencesDeep, excludeExportDetails, workspaces? }",
+      "file": "src/core/server/saved_objects/routes/export.ts"
+    },
+    {
+      "plugin": "core/saved_objects",
+      "path": "/api/saved_objects/_find",
+      "method": "GET",
+      "description": "Find saved objects by query",
+      "params": {},
+      "query": { "per_page": "number", "page": "number", "type": "string|string[]", "search": "string?", "default_search_operator": "OR|AND", "search_fields": "string|string[]?", "sort_field": "string?", "has_reference": "{ type, id }?", "fields": "string|string[]?", "filter": "string?", "namespaces": "string|string[]?", "workspaces": "string|string[]?" },
+      "body": null,
+      "file": "src/core/server/saved_objects/routes/find.ts"
+    },
+    {
+      "plugin": "core/saved_objects",
+      "path": "/api/saved_objects/{type}/{id}",
+      "method": "GET",
+      "description": "Get a saved object by type and id",
+      "params": { "type": "string", "id": "string" },
+      "query": {},
+      "body": null,
+      "file": "src/core/server/saved_objects/routes/get.ts"
+    },
+    {
+      "plugin": "core/saved_objects",
+      "path": "/api/saved_objects/_import",
+      "method": "POST",
+      "description": "Import saved objects from NDJSON file (multipart/form-data)",
+      "params": {},
+      "query": { "overwrite": "boolean", "createNewCopies": "boolean", "dataSourceId": "string?", "workspaces": "string|string[]?", "dataSourceEnabled": "boolean?" },
+      "body": "{ file: stream }",
+      "file": "src/core/server/saved_objects/routes/import.ts"
+    },
+    {
+      "plugin": "core/saved_objects",
+      "path": "/api/saved_objects/_log_legacy_import",
+      "method": "POST",
+      "description": "Log legacy import (deprecated)",
+      "params": {},
+      "query": {},
+      "body": null,
+      "file": "src/core/server/saved_objects/routes/log_legacy_import.ts"
+    },
+    {
+      "plugin": "core/saved_objects (internal)",
+      "path": "/internal/saved_objects/_migrate",
+      "method": "POST",
+      "description": "Run saved objects migrations",
+      "params": {},
+      "query": {},
+      "body": null,
+      "auth": "access:migrateSavedObjects",
+      "file": "src/core/server/saved_objects/routes/migrate.ts"
+    },
+    {
+      "plugin": "core/saved_objects",
+      "path": "/api/saved_objects/_resolve_import_errors",
+      "method": "POST",
+      "description": "Resolve import errors with retries (multipart/form-data)",
+      "params": {},
+      "query": { "createNewCopies": "boolean", "dataSourceId": "string?", "workspaces": "string|string[]?" },
+      "body": "{ file: stream, retries: array }",
+      "file": "src/core/server/saved_objects/routes/resolve_import_errors.ts"
+    },
+    {
+      "plugin": "core/saved_objects",
+      "path": "/api/saved_objects/{type}/{id}",
+      "method": "PUT",
+      "description": "Update a saved object",
+      "params": { "type": "string", "id": "string" },
+      "query": {},
+      "body": "{ attributes, version?, references? }",
+      "file": "src/core/server/saved_objects/routes/update.ts"
+    },
+    {
+      "plugin": "core/capabilities",
+      "path": "/api/core/capabilities",
+      "method": "POST",
+      "description": "Resolve capabilities for applications",
+      "params": {},
+      "query": {},
+      "body": "{ applications: string[] }",
+      "auth": "optional",
+      "file": "src/core/server/capabilities/routes/resolve_capabilities.ts"
+    },
+    {
+      "plugin": "core/status",
+      "path": "/api/status",
+      "method": "GET",
+      "description": "Get server status, version, and metrics",
+      "params": {},
+      "query": { "v8format": "boolean (default: false)" },
+      "body": null,
+      "auth": "configurable (allowAnonymous)",
+      "file": "src/core/server/status/routes/status.ts"
+    },
+    {
+      "plugin": "core/ui_settings",
+      "path": "/api/opensearch-dashboards/settings",
+      "method": "GET",
+      "description": "Get all user-provided UI settings",
+      "params": {},
+      "query": { "scope": "global|user|workspace?" },
+      "body": null,
+      "file": "src/core/server/ui_settings/routes/get.ts"
+    },
+    {
+      "plugin": "core/ui_settings",
+      "path": "/api/opensearch-dashboards/settings/{key}",
+      "method": "POST",
+      "description": "Set a single UI setting",
+      "params": { "key": "string" },
+      "query": { "scope": "global|user?" },
+      "body": "{ value: any }",
+      "file": "src/core/server/ui_settings/routes/set.ts"
+    },
+    {
+      "plugin": "core/ui_settings",
+      "path": "/api/opensearch-dashboards/settings",
+      "method": "POST",
+      "description": "Set multiple UI settings at once",
+      "params": {},
+      "query": { "scope": "global|user|workspace|dashboard_admin?" },
+      "body": "{ changes: object }",
+      "file": "src/core/server/ui_settings/routes/set_many.ts"
+    },
+    {
+      "plugin": "core/ui_settings",
+      "path": "/api/opensearch-dashboards/settings/{key}",
+      "method": "DELETE",
+      "description": "Delete (reset) a UI setting",
+      "params": { "key": "string" },
+      "query": { "scope": "global|user?" },
+      "body": null,
+      "file": "src/core/server/ui_settings/routes/delete.ts"
+    },
+    {
+      "plugin": "core/core_app",
+      "path": "/",
+      "method": "GET",
+      "description": "Root redirect to default route",
+      "params": {},
+      "query": {},
+      "body": null,
+      "file": "src/core/server/core_app/core_app.ts"
+    },
+    {
+      "plugin": "core/core_app",
+      "path": "/core",
+      "method": "GET",
+      "description": "Returns core version info",
+      "params": {},
+      "query": {},
+      "body": null,
+      "file": "src/core/server/core_app/core_app.ts"
+    },
+    {
+      "plugin": "application_config",
+      "path": "/api/appconfig",
+      "method": "GET",
+      "description": "Get all application configuration",
+      "params": {},
+      "query": {},
+      "body": null,
+      "file": "src/plugins/application_config/server/routes/index.ts"
+    },
+    {
+      "plugin": "application_config",
+      "path": "/api/appconfig/{entity}",
+      "method": "GET",
+      "description": "Get configuration for a specific entity",
+      "params": { "entity": "string" },
+      "query": {},
+      "body": null,
+      "file": "src/plugins/application_config/server/routes/index.ts"
+    },
+    {
+      "plugin": "application_config",
+      "path": "/api/appconfig/{entity}",
+      "method": "POST",
+      "description": "Update configuration for a specific entity",
+      "params": { "entity": "string" },
+      "query": {},
+      "body": "{ newValue: string }",
+      "file": "src/plugins/application_config/server/routes/index.ts"
+    },
+    {
+      "plugin": "application_config",
+      "path": "/api/appconfig/{entity}",
+      "method": "DELETE",
+      "description": "Delete configuration for a specific entity",
+      "params": { "entity": "string" },
+      "query": {},
+      "body": null,
+      "file": "src/plugins/application_config/server/routes/index.ts"
+    },
+    {
+      "plugin": "banner",
+      "path": "/api/_plugins/_banner/content",
+      "method": "GET",
+      "description": "Get banner configuration and content",
+      "params": {},
+      "query": {},
+      "body": null,
+      "file": "src/plugins/banner/server/routes/get_config.ts"
+    },
+    {
+      "plugin": "console",
+      "path": "/api/console/proxy",
+      "method": "POST",
+      "description": "Proxy requests to OpenSearch (stream body)",
+      "params": {},
+      "query": { "method": "string (HTTP verb)", "path": "string", "dataSourceId": "string?" },
+      "body": "stream",
+      "auth": "access:console",
+      "file": "src/plugins/console/server/routes/api/console/proxy/index.ts"
+    },
+    {
+      "plugin": "console",
+      "path": "/api/console/opensearch_config",
+      "method": "GET",
+      "description": "Get OpenSearch connection config (host)",
+      "params": {},
+      "query": {},
+      "body": null,
+      "file": "src/plugins/console/server/routes/api/console/opensearch_config/index.ts"
+    },
+    {
+      "plugin": "console",
+      "path": "/api/console/api_server",
+      "method": "GET",
+      "description": "Get API spec definitions",
+      "params": {},
+      "query": {},
+      "body": null,
+      "file": "src/plugins/console/server/routes/api/console/spec_definitions/index.ts"
+    },
+    {
+      "plugin": "console",
+      "path": "/api/console/api_server",
+      "method": "POST",
+      "description": "Get API spec definitions (POST variant)",
+      "params": {},
+      "query": {},
+      "body": null,
+      "file": "src/plugins/console/server/routes/api/console/spec_definitions/index.ts"
+    },
+    {
+      "plugin": "data",
+      "path": "/internal/_msearch",
+      "method": "POST",
+      "description": "Multi-search (internal, deprecated)",
+      "params": {},
+      "query": { "data_source_id": "string?" },
+      "body": "{ searches: [{ header: { index, preference? }, body }] }",
+      "file": "src/plugins/data/server/search/routes/msearch.ts"
+    },
+    {
+      "plugin": "data",
+      "path": "/internal/search/{strategy}/{id?}",
+      "method": "POST",
+      "description": "Execute a search using a strategy",
+      "params": { "strategy": "string", "id": "string?" },
+      "query": "any",
+      "body": "any",
+      "file": "src/plugins/data/server/search/routes/search.ts"
+    },
+    {
+      "plugin": "data",
+      "path": "/internal/search/{strategy}/{id}",
+      "method": "DELETE",
+      "description": "Cancel an async search",
+      "params": { "strategy": "string", "id": "string" },
+      "query": "any",
+      "body": null,
+      "file": "src/plugins/data/server/search/routes/search.ts"
+    },
+    {
+      "plugin": "data",
+      "path": "/api/opensearch-dashboards/scripts/languages",
+      "method": "GET",
+      "description": "Get supported scripting languages",
+      "params": {},
+      "query": {},
+      "body": null,
+      "file": "src/plugins/data/server/scripts/route.ts"
+    },
+    {
+      "plugin": "data",
+      "path": "/api/index_patterns/_fields_for_wildcard",
+      "method": "GET",
+      "description": "Get fields for an index pattern wildcard",
+      "params": {},
+      "query": { "pattern": "string", "meta_fields": "string|string[]", "data_source": "string?" },
+      "body": null,
+      "file": "src/plugins/data/server/index_patterns/routes.ts"
+    },
+    {
+      "plugin": "data",
+      "path": "/api/index_patterns/_fields_for_time_pattern",
+      "method": "GET",
+      "description": "Get fields for a time-based pattern",
+      "params": {},
+      "query": { "pattern": "string", "interval": "string?", "look_back": "number", "meta_fields": "string|string[]", "data_source": "string?" },
+      "body": null,
+      "file": "src/plugins/data/server/index_patterns/routes.ts"
+    },
+    {
+      "plugin": "data",
+      "path": "/api/opensearch-dashboards/suggestions/values/{index}",
+      "method": "POST",
+      "description": "Get autocomplete value suggestions for a field",
+      "params": { "index": "string" },
+      "query": {},
+      "body": "{ field: string, query: string, boolFilter?: any, dataSourceId?: string }",
+      "file": "src/plugins/data/server/autocomplete/value_suggestions_route.ts"
+    },
+    {
+      "plugin": "data",
+      "path": "/api/opensearch-dashboards/dql_opt_in_stats",
+      "method": "POST",
+      "description": "Track DQL opt-in/opt-out telemetry",
+      "params": {},
+      "query": {},
+      "body": "{ opt_in: boolean }",
+      "file": "src/plugins/data/server/dql_telemetry/route.ts"
+    },
+    {
+      "plugin": "data_explorer",
+      "path": "/api/data_explorer/example",
+      "method": "GET",
+      "description": "Example endpoint returning current time",
+      "params": {},
+      "query": {},
+      "body": null,
+      "file": "src/plugins/data_explorer/server/routes/index.ts"
+    },
+    {
+      "plugin": "data_importer",
+      "path": "/api/data_importer/_cat_indices",
+      "method": "GET",
+      "description": "List non-system indices",
+      "params": {},
+      "query": { "dataSource": "string?" },
+      "body": null,
+      "file": "src/plugins/data_importer/server/routes/cat_indices.ts"
+    },
+    {
+      "plugin": "data_importer",
+      "path": "/api/data_importer/_preview",
+      "method": "POST",
+      "description": "Preview file import with mapping prediction (multipart)",
+      "params": {},
+      "query": { "indexName": "string", "createMode": "boolean", "fileExtension": "string", "dataSource": "string?", "delimiter": "string?", "previewCount": "number" },
+      "body": "{ file: stream }",
+      "file": "src/plugins/data_importer/server/routes/preview.ts"
+    },
+    {
+      "plugin": "data_importer",
+      "path": "/api/data_importer/_import_text",
+      "method": "POST",
+      "description": "Import text data into an index",
+      "params": {},
+      "query": { "fileType": "string", "indexName": "string", "createMode": "boolean", "delimiter": "string?", "dataSource": "string?", "importIdentifier": "string?" },
+      "body": "{ text: string, mapping?: string }",
+      "file": "src/plugins/data_importer/server/routes/import_text.ts"
+    },
+    {
+      "plugin": "data_importer",
+      "path": "/api/data_importer/_import_file",
+      "method": "POST",
+      "description": "Import file data into an index (multipart)",
+      "params": {},
+      "query": { "indexName": "string", "createMode": "boolean", "fileExtension": "string", "dataSource": "string?", "delimiter": "string?", "importIdentifier": "string?" },
+      "body": "{ file: stream, mapping?: string }",
+      "file": "src/plugins/data_importer/server/routes/import_file.ts"
+    },
+    {
+      "plugin": "data_source",
+      "path": "/internal/data-source-management/validate",
+      "method": "POST",
+      "description": "Test data source connection",
+      "params": {},
+      "query": {},
+      "body": "{ id?: string, dataSourceAttr: { endpoint, auth? } }",
+      "file": "src/plugins/data_source/server/routes/test_connection.ts"
+    },
+    {
+      "plugin": "data_source",
+      "path": "/internal/data-source-management/fetchDataSourceMetaData",
+      "method": "POST",
+      "description": "Fetch data source metadata (version, engine type, plugins)",
+      "params": {},
+      "query": {},
+      "body": "{ id?: string, dataSourceAttr: { endpoint, auth? } }",
+      "file": "src/plugins/data_source/server/routes/fetch_data_source_metadata.ts"
+    },
+    {
+      "plugin": "data_source_management",
+      "path": "/api/datasourcemanagement/query/jobs",
+      "method": "POST",
+      "description": "Run a direct query job",
+      "params": {},
+      "query": {},
+      "body": "{ query: string, lang: string, datasource: string, sessionId?: string }",
+      "file": "src/plugins/data_source_management/server/routes/datasources_router.ts"
+    },
+    {
+      "plugin": "data_source_management",
+      "path": "/api/datasourcemanagement/query/jobs/{queryId}/{dataSourceMDSId?}",
+      "method": "GET",
+      "description": "Get direct query job status",
+      "params": { "queryId": "string", "dataSourceMDSId": "string?" },
+      "query": {},
+      "body": null,
+      "file": "src/plugins/data_source_management/server/routes/datasources_router.ts"
+    },
+    {
+      "plugin": "data_source_management",
+      "path": "/api/datasourcemanagement/query/jobs/{queryId}",
+      "method": "DELETE",
+      "description": "Delete a direct query job",
+      "params": { "queryId": "string" },
+      "query": {},
+      "body": null,
+      "file": "src/plugins/data_source_management/server/routes/datasources_router.ts"
+    },
+    {
+      "plugin": "data_source_management",
+      "path": "/api/directquery/dataconnections",
+      "method": "GET",
+      "description": "List all data connections (non-MDS)",
+      "params": {},
+      "query": {},
+      "body": null,
+      "file": "src/plugins/data_source_management/server/routes/data_connections_router.ts"
+    },
+    {
+      "plugin": "data_source_management",
+      "path": "/api/directquery/dataconnections/{name}",
+      "method": "GET",
+      "description": "Get a data connection by name (non-MDS)",
+      "params": { "name": "string" },
+      "query": {},
+      "body": null,
+      "file": "src/plugins/data_source_management/server/routes/data_connections_router.ts"
+    },
+    {
+      "plugin": "data_source_management",
+      "path": "/api/directquery/dataconnections/{name}",
+      "method": "DELETE",
+      "description": "Delete a data connection by name (non-MDS)",
+      "params": { "name": "string" },
+      "query": {},
+      "body": null,
+      "file": "src/plugins/data_source_management/server/routes/data_connections_router.ts"
+    },
+    {
+      "plugin": "data_source_management",
+      "path": "/api/directquery/dataconnections/edit",
+      "method": "POST",
+      "description": "Edit a data connection (non-MDS)",
+      "params": {},
+      "query": {},
+      "body": "{ name: string, allowedRoles: string[] }",
+      "file": "src/plugins/data_source_management/server/routes/data_connections_router.ts"
+    },
+    {
+      "plugin": "data_source_management",
+      "path": "/api/directquery/dataconnections/edit/status",
+      "method": "POST",
+      "description": "Update data connection status (non-MDS)",
+      "params": {},
+      "query": {},
+      "body": "{ name: string, status: string }",
+      "file": "src/plugins/data_source_management/server/routes/data_connections_router.ts"
+    },
+    {
+      "plugin": "data_source_management",
+      "path": "/api/directquery/dataconnections",
+      "method": "POST",
+      "description": "Create a data connection (MDS)",
+      "params": {},
+      "query": {},
+      "body": "{ name: string, connector: string, allowedRoles: string[], properties: any }",
+      "file": "src/plugins/data_source_management/server/routes/data_connections_router.ts"
+    },
+    {
+      "plugin": "data_source_management",
+      "path": "/api/directquery/dataconnections/dataSourceMDSId={dataSourceMDSId?}",
+      "method": "GET",
+      "description": "List data connections for a data source (MDS)",
+      "params": { "dataSourceMDSId": "string?" },
+      "query": {},
+      "body": null,
+      "file": "src/plugins/data_source_management/server/routes/data_connections_router.ts"
+    },
+    {
+      "plugin": "data_source_management",
+      "path": "/api/directquery/dataconnections/{name}/dataSourceMDSId={dataSourceMDSId?}",
+      "method": "GET",
+      "description": "Get a data connection by name for a data source (MDS)",
+      "params": { "name": "string", "dataSourceMDSId": "string?" },
+      "query": {},
+      "body": null,
+      "file": "src/plugins/data_source_management/server/routes/data_connections_router.ts"
+    },
+    {
+      "plugin": "data_source_management",
+      "path": "/api/directquery/dataconnections/{name}/dataSourceMDSId={dataSourceMDSId?}",
+      "method": "DELETE",
+      "description": "Delete a data connection by name for a data source (MDS)",
+      "params": { "name": "string", "dataSourceMDSId": "string?" },
+      "query": {},
+      "body": null,
+      "file": "src/plugins/data_source_management/server/routes/data_connections_router.ts"
+    },
+    {
+      "plugin": "data_source_management",
+      "path": "/api/directquery/dsl/search",
+      "method": "POST",
+      "description": "DSL search proxy",
+      "params": {},
+      "query": {},
+      "body": "{ index, size, ...rest }",
+      "file": "src/plugins/data_source_management/server/routes/dsl.ts"
+    },
+    {
+      "plugin": "data_source_management",
+      "path": "/api/directquery/dsl/cat.indices",
+      "method": "GET",
+      "description": "DSL cat indices proxy",
+      "params": {},
+      "query": { "format": "string", "index": "string?" },
+      "body": null,
+      "file": "src/plugins/data_source_management/server/routes/dsl.ts"
+    },
+    {
+      "plugin": "data_source_management",
+      "path": "/api/directquery/dsl/indices.getFieldMapping",
+      "method": "GET",
+      "description": "DSL get index mapping proxy",
+      "params": {},
+      "query": "any",
+      "body": null,
+      "file": "src/plugins/data_source_management/server/routes/dsl.ts"
+    },
+    {
+      "plugin": "data_source_management",
+      "path": "/api/directquery/dsl/indices.getFieldSettings",
+      "method": "GET",
+      "description": "DSL get index settings proxy",
+      "params": {},
+      "query": "any",
+      "body": null,
+      "file": "src/plugins/data_source_management/server/routes/dsl.ts"
+    },
+    {
+      "plugin": "data_source_management",
+      "path": "/api/directquery/dsl/cat.indices/dataSourceMDSId={dataSourceMDSId?}",
+      "method": "GET",
+      "description": "DSL cat indices proxy (MDS)",
+      "params": { "dataSourceMDSId": "string?" },
+      "query": { "format": "string", "index": "string?" },
+      "body": null,
+      "file": "src/plugins/data_source_management/server/routes/dsl.ts"
+    },
+    {
+      "plugin": "data_source_management",
+      "path": "/api/directquery/dsl/indices.getFieldMapping/dataSourceMDSId={dataSourceMDSId?}",
+      "method": "GET",
+      "description": "DSL get index mapping proxy (MDS)",
+      "params": { "dataSourceMDSId": "string?" },
+      "query": "any",
+      "body": null,
+      "file": "src/plugins/data_source_management/server/routes/dsl.ts"
+    },
+    {
+      "plugin": "data_source_management",
+      "path": "/api/directquery/dsl/indices.getFieldSettings/dataSourceMDSId={dataSourceMDSId?}",
+      "method": "GET",
+      "description": "DSL get index settings proxy (MDS)",
+      "params": { "dataSourceMDSId": "string?" },
+      "query": "any",
+      "body": null,
+      "file": "src/plugins/data_source_management/server/routes/dsl.ts"
+    },
+    {
+      "plugin": "data_source_management",
+      "path": "/api/directquery/ppl/search",
+      "method": "POST",
+      "description": "PPL search proxy",
+      "params": {},
+      "query": {},
+      "body": "{ query: string, format: string }",
+      "file": "src/plugins/data_source_management/server/routes/ppl.ts"
+    },
+    {
+      "plugin": "home",
+      "path": "/api/home/hits_status",
+      "method": "POST",
+      "description": "Check if an index has hits matching a query",
+      "params": {},
+      "query": {},
+      "body": "{ index: string, query: object }",
+      "file": "src/plugins/home/server/routes/fetch_opensearch_hits_status.ts"
+    },
+    {
+      "plugin": "home",
+      "path": "/api/sample_data",
+      "method": "GET",
+      "description": "List available sample datasets and their install status",
+      "params": {},
+      "query": { "data_source_id": "string?" },
+      "body": null,
+      "file": "src/plugins/home/server/services/sample_data/routes/list.ts"
+    },
+    {
+      "plugin": "home",
+      "path": "/api/sample_data/{id}",
+      "method": "POST",
+      "description": "Install a sample dataset",
+      "params": { "id": "string" },
+      "query": { "now": "string?", "data_source_id": "string?" },
+      "body": null,
+      "file": "src/plugins/home/server/services/sample_data/routes/install.ts"
+    },
+    {
+      "plugin": "home",
+      "path": "/api/sample_data/{id}",
+      "method": "DELETE",
+      "description": "Uninstall a sample dataset",
+      "params": { "id": "string" },
+      "query": { "data_source_id": "string?" },
+      "body": null,
+      "file": "src/plugins/home/server/services/sample_data/routes/uninstall.ts"
+    },
+    {
+      "plugin": "index_pattern_management",
+      "path": "/internal/index-pattern-management/preview_scripted_field",
+      "method": "POST",
+      "description": "Preview a scripted field against an index",
+      "params": {},
+      "query": { "dataSourceId": "string?" },
+      "body": "{ index: string, name: string, script: string, query?: object, additionalFields?: string[] }",
+      "file": "src/plugins/index_pattern_management/server/routes/preview_scripted_field.ts"
+    },
+    {
+      "plugin": "index_pattern_management",
+      "path": "/internal/index-pattern-management/resolve_index/{query}",
+      "method": "GET",
+      "description": "Resolve index names by pattern",
+      "params": { "query": "string" },
+      "query": { "expand_wildcards": "all|open|closed|hidden|none?", "data_source": "string?" },
+      "body": null,
+      "file": "src/plugins/index_pattern_management/server/routes/resolve_index.ts"
+    },
+    {
+      "plugin": "legacy_export",
+      "path": "/api/opensearch-dashboards/dashboards/export",
+      "method": "GET",
+      "description": "Export dashboards as JSON",
+      "params": {},
+      "query": { "dashboard": "string|string[]" },
+      "body": null,
+      "file": "src/plugins/legacy_export/server/routes/export.ts"
+    },
+    {
+      "plugin": "legacy_export",
+      "path": "/api/opensearch-dashboards/dashboards/import",
+      "method": "POST",
+      "description": "Import dashboards from JSON",
+      "params": {},
+      "query": { "force": "boolean", "exclude": "string|string[]" },
+      "body": "{ objects: array, version?: string }",
+      "file": "src/plugins/legacy_export/server/routes/import.ts"
+    },
+    {
+      "plugin": "query_enhancements",
+      "path": "/api/enhancements/search/{strategyId}",
+      "method": "POST",
+      "description": "Execute enhanced search (PPL, SQL, PromQL, etc.)",
+      "params": {},
+      "query": {},
+      "body": "{ query: { query, language, dataset, format }, aggConfig?, pollQueryResultsParams?, timeRange?, options? }",
+      "note": "Dynamic routes created for each registered search strategy",
+      "file": "src/plugins/query_enhancements/server/routes/index.ts"
+    },
+    {
+      "plugin": "query_enhancements",
+      "path": "/api/enhancements/assist/languages",
+      "method": "GET",
+      "description": "Get configured query assist languages",
+      "params": {},
+      "query": { "dataSourceId": "string?" },
+      "body": null,
+      "file": "src/plugins/query_enhancements/server/routes/query_assist/routes.ts"
+    },
+    {
+      "plugin": "query_enhancements",
+      "path": "/api/enhancements/assist/generate",
+      "method": "POST",
+      "description": "Generate a query using query assist AI",
+      "params": {},
+      "query": {},
+      "body": "{ index: string, question: string, language: string, dataSourceId?: string, currentTime?: string, timeField?: string }",
+      "file": "src/plugins/query_enhancements/server/routes/query_assist/routes.ts"
+    },
+    {
+      "plugin": "query_enhancements",
+      "path": "/api/enhancements/connections/{id?}",
+      "method": "GET",
+      "description": "Get data source connections",
+      "params": { "id": "string?" },
+      "query": {},
+      "body": null,
+      "file": "src/plugins/query_enhancements/server/routes/data_source_connection/routes.ts"
+    },
+    {
+      "plugin": "query_enhancements",
+      "path": "/api/enhancements/jobs",
+      "method": "GET",
+      "description": "Get async query job status",
+      "params": {},
+      "query": { "id": "string", "queryId": "string?" },
+      "body": null,
+      "file": "src/plugins/query_enhancements/server/routes/data_source_connection/routes.ts"
+    },
+    {
+      "plugin": "query_enhancements",
+      "path": "/api/enhancements/jobs",
+      "method": "POST",
+      "description": "Submit an async direct query job",
+      "params": {},
+      "query": { "id": "string" },
+      "body": "{ query: string, datasource: string, lang: string, sessionId?: string }",
+      "file": "src/plugins/query_enhancements/server/routes/data_source_connection/routes.ts"
+    },
+    {
+      "plugin": "query_enhancements",
+      "path": "/api/enhancements/jobs",
+      "method": "DELETE",
+      "description": "Delete an async query job",
+      "params": {},
+      "query": { "id": "string", "queryId": "string?" },
+      "body": null,
+      "file": "src/plugins/query_enhancements/server/routes/data_source_connection/routes.ts"
+    },
+    {
+      "plugin": "query_enhancements",
+      "path": "/api/enhancements/remote_cluster/list",
+      "method": "GET",
+      "description": "List remote clusters",
+      "params": {},
+      "query": { "dataSourceId": "string?" },
+      "body": null,
+      "file": "src/plugins/query_enhancements/server/routes/data_source_connection/routes.ts"
+    },
+    {
+      "plugin": "query_enhancements",
+      "path": "/api/enhancements/remote_cluster/indexes",
+      "method": "GET",
+      "description": "List remote cluster indexes",
+      "params": {},
+      "query": { "dataSourceId": "string?", "connectionAlias": "string?" },
+      "body": null,
+      "file": "src/plugins/query_enhancements/server/routes/data_source_connection/routes.ts"
+    },
+    {
+      "plugin": "query_enhancements",
+      "path": "/api/enhancements/resources",
+      "method": "POST",
+      "description": "Query resources via connection manager",
+      "params": {},
+      "query": {},
+      "body": "{ connection: { id, type }, resource: { name?, type }, content?: object }",
+      "file": "src/plugins/query_enhancements/server/routes/resources/routes.ts"
+    },
+    {
+      "plugin": "region_map",
+      "path": "/api/geospatial/_indices",
+      "method": "POST",
+      "description": "List indices matching pattern ending with -map",
+      "params": {},
+      "query": "any (dataSourceId?)",
+      "body": "{ index: string (must end with -map) }",
+      "file": "src/plugins/region_map/server/routes/opensearch.ts"
+    },
+    {
+      "plugin": "region_map",
+      "path": "/api/geospatial/_search",
+      "method": "POST",
+      "description": "Search documents in a geospatial index",
+      "params": {},
+      "query": "any (dataSourceId?)",
+      "body": "{ index: string, size: number }",
+      "file": "src/plugins/region_map/server/routes/opensearch.ts"
+    },
+    {
+      "plugin": "region_map",
+      "path": "/api/geospatial/_mappings",
+      "method": "POST",
+      "description": "Get mappings for a geospatial index",
+      "params": {},
+      "query": "any (dataSourceId?)",
+      "body": "{ index: string }",
+      "file": "src/plugins/region_map/server/routes/opensearch.ts"
+    },
+    {
+      "plugin": "saved_objects_management",
+      "path": "/api/opensearch-dashboards/management/saved_objects/_find",
+      "method": "GET",
+      "description": "Find saved objects for management UI",
+      "params": {},
+      "query": { "perPage": "number", "page": "number", "type": "string|string[]", "namespaces": "string|string[]?", "search": "string?", "defaultSearchOperator": "OR|AND", "sortField": "string?", "sortOrder": "string?", "hasReference": "{ type, id }?", "fields": "string|string[]", "workspaces": "string|string[]?" },
+      "body": null,
+      "file": "src/plugins/saved_objects_management/server/routes/find.ts"
+    },
+    {
+      "plugin": "saved_objects_management",
+      "path": "/api/opensearch-dashboards/management/saved_objects/{type}/{id}",
+      "method": "GET",
+      "description": "Get a saved object for management UI",
+      "params": { "type": "string", "id": "string" },
+      "query": {},
+      "body": null,
+      "file": "src/plugins/saved_objects_management/server/routes/get.ts"
+    },
+    {
+      "plugin": "saved_objects_management",
+      "path": "/api/opensearch-dashboards/management/saved_objects/_allowed_types",
+      "method": "GET",
+      "description": "Get importable/exportable saved object types",
+      "params": {},
+      "query": {},
+      "body": null,
+      "file": "src/plugins/saved_objects_management/server/routes/get_allowed_types.ts"
+    },
+    {
+      "plugin": "saved_objects_management",
+      "path": "/api/opensearch-dashboards/management/saved_objects/relationships/{type}/{id}",
+      "method": "GET",
+      "description": "Get relationships for a saved object",
+      "params": { "type": "string", "id": "string" },
+      "query": { "size": "number (default: 10000)", "savedObjectTypes": "string|string[]" },
+      "body": null,
+      "file": "src/plugins/saved_objects_management/server/routes/relationships.ts"
+    },
+    {
+      "plugin": "saved_objects_management",
+      "path": "/api/opensearch-dashboards/management/saved_objects/scroll/counts",
+      "method": "POST",
+      "description": "Get counts of saved objects by type, namespace, workspace",
+      "params": {},
+      "query": {},
+      "body": "{ typesToInclude: string[], namespacesToInclude?: string[], searchString?: string, workspaces?: string[], availableWorkspaces?: string[] }",
+      "file": "src/plugins/saved_objects_management/server/routes/scroll_count.ts"
+    },
+    {
+      "plugin": "saved_objects_management",
+      "path": "/api/opensearch-dashboards/management/saved_objects/scroll/export",
+      "method": "POST",
+      "description": "Export saved objects by scrolling through types",
+      "params": {},
+      "query": {},
+      "body": "{ typesToInclude: string[] }",
+      "file": "src/plugins/saved_objects_management/server/routes/scroll_export.ts"
+    },
+    {
+      "plugin": "share",
+      "path": "/api/short_url/{urlId}",
+      "method": "GET",
+      "description": "Resolve a short URL to its full URL",
+      "params": { "urlId": "string" },
+      "query": {},
+      "body": null,
+      "file": "src/plugins/share/server/routes/get.ts"
+    },
+    {
+      "plugin": "share",
+      "path": "/api/shorten_url",
+      "method": "POST",
+      "description": "Create a shortened URL",
+      "params": {},
+      "query": {},
+      "body": "{ url: string }",
+      "file": "src/plugins/share/server/routes/shorten_url.ts"
+    },
+    {
+      "plugin": "telemetry",
+      "path": "/api/telemetry/v2/optIn",
+      "method": "POST",
+      "description": "Opt in or out of telemetry",
+      "params": {},
+      "query": {},
+      "body": "{ enabled: boolean }",
+      "file": "src/plugins/telemetry/server/routes/telemetry_opt_in.ts"
+    },
+    {
+      "plugin": "telemetry",
+      "path": "/api/telemetry/v2/clusters/_opt_in_stats",
+      "method": "POST",
+      "description": "Get opt-in stats for clusters",
+      "params": {},
+      "query": {},
+      "body": "{ enabled: boolean, unencrypted: boolean }",
+      "file": "src/plugins/telemetry/server/routes/telemetry_opt_in_stats.ts"
+    },
+    {
+      "plugin": "telemetry",
+      "path": "/api/telemetry/v2/clusters/_stats",
+      "method": "POST",
+      "description": "Get telemetry usage stats",
+      "params": {},
+      "query": {},
+      "body": "{ unencrypted: boolean, timeRange: { min, max } }",
+      "file": "src/plugins/telemetry/server/routes/telemetry_usage_stats.ts"
+    },
+    {
+      "plugin": "telemetry",
+      "path": "/api/telemetry/v2/userHasSeenNotice",
+      "method": "PUT",
+      "description": "Mark telemetry notice as seen",
+      "params": {},
+      "query": {},
+      "body": null,
+      "file": "src/plugins/telemetry/server/routes/telemetry_user_has_seen_notice.ts"
+    },
+    {
+      "plugin": "usage_collection",
+      "path": "/api/ui_metric/report",
+      "method": "POST",
+      "description": "Report UI usage metrics",
+      "params": {},
+      "query": {},
+      "body": "{ report: reportSchema }",
+      "file": "src/plugins/usage_collection/server/routes/report_metrics.ts"
+    },
+    {
+      "plugin": "usage_collection",
+      "path": "/api/stats",
+      "method": "GET",
+      "description": "Get extended stats including usage and cluster info",
+      "params": {},
+      "query": { "extended": "boolean|''", "legacy": "boolean|''", "exclude_usage": "boolean|''" },
+      "body": null,
+      "auth": "configurable (allowAnonymous)",
+      "file": "src/plugins/usage_collection/server/routes/stats/stats.ts"
+    },
+    {
+      "plugin": "vis_augmenter",
+      "path": "/api/vis_augmenter/stats",
+      "method": "GET",
+      "description": "Get vis augmenter saved object stats",
+      "params": {},
+      "query": {},
+      "body": null,
+      "file": "src/plugins/vis_augmenter/server/routes/stats.ts"
+    },
+    {
+      "plugin": "vis_type_timeline",
+      "path": "/api/timeline/functions",
+      "method": "GET",
+      "description": "List available timeline functions",
+      "params": {},
+      "query": {},
+      "body": null,
+      "file": "src/plugins/vis_type_timeline/server/routes/functions.ts"
+    },
+    {
+      "plugin": "vis_type_timeline",
+      "path": "/api/timeline/run",
+      "method": "POST",
+      "description": "Run timeline expression sheets",
+      "params": {},
+      "query": {},
+      "body": "{ sheet: string[], extended?: { es: { filter } }, time?: { from, interval, timezone, to } }",
+      "file": "src/plugins/vis_type_timeline/server/routes/run.ts"
+    },
+    {
+      "plugin": "vis_type_timeline",
+      "path": "/api/timeline/validate/opensearch",
+      "method": "GET",
+      "description": "Validate OpenSearch connection for timeline",
+      "params": {},
+      "query": {},
+      "body": null,
+      "file": "src/plugins/vis_type_timeline/server/routes/validate_es.ts"
+    },
+    {
+      "plugin": "vis_type_timeseries",
+      "path": "/api/metrics/fields",
+      "method": "GET",
+      "description": "Get fields for a TSVB index pattern",
+      "params": {},
+      "query": { "index": "string", "data_source": "string?" },
+      "body": null,
+      "file": "src/plugins/vis_type_timeseries/server/routes/fields.ts"
+    },
+    {
+      "plugin": "vis_type_timeseries",
+      "path": "/api/metrics/vis/data",
+      "method": "POST",
+      "description": "Get TSVB visualization data",
+      "params": {},
+      "query": {},
+      "body": "any (escape hatch)",
+      "file": "src/plugins/vis_type_timeseries/server/routes/vis.ts"
+    },
+    {
+      "plugin": "vis_type_timeseries",
+      "path": "/api/metrics/vis/data-raw",
+      "method": "POST",
+      "description": "Get raw TSVB visualization data",
+      "params": {},
+      "query": {},
+      "body": "any (escape hatch)",
+      "file": "src/plugins/vis_type_timeseries/server/routes/vis_raw.ts"
+    },
+    {
+      "plugin": "workspace",
+      "path": "/api/workspaces/_list",
+      "method": "POST",
+      "description": "List workspaces with filtering and pagination",
+      "params": {},
+      "query": {},
+      "body": "{ search?: string, sortOrder?: string, perPage: number, page: number, sortField?: string, searchFields?: string[], permissionModes?: string[] }",
+      "file": "src/plugins/workspace/server/routes/index.ts"
+    },
+    {
+      "plugin": "workspace",
+      "path": "/api/workspaces/{id}",
+      "method": "GET",
+      "description": "Get a workspace by ID",
+      "params": { "id": "string" },
+      "query": {},
+      "body": null,
+      "file": "src/plugins/workspace/server/routes/index.ts"
+    },
+    {
+      "plugin": "workspace",
+      "path": "/api/workspaces",
+      "method": "POST",
+      "description": "Create a workspace",
+      "params": {},
+      "query": {},
+      "body": "{ attributes: { name, features, description?, color?, icon?, ... }, settings: { permissions?, dataSources?, dataConnections? } }",
+      "file": "src/plugins/workspace/server/routes/index.ts"
+    },
+    {
+      "plugin": "workspace",
+      "path": "/api/workspaces/{id?}",
+      "method": "PUT",
+      "description": "Update a workspace",
+      "params": { "id": "string" },
+      "query": {},
+      "body": "{ attributes: { name?, features?, description?, color?, ... }, settings: { permissions?, dataSources?, dataConnections? } }",
+      "file": "src/plugins/workspace/server/routes/index.ts"
+    },
+    {
+      "plugin": "workspace",
+      "path": "/api/workspaces/{id?}",
+      "method": "DELETE",
+      "description": "Delete a workspace",
+      "params": { "id": "string" },
+      "query": {},
+      "body": null,
+      "file": "src/plugins/workspace/server/routes/index.ts"
+    },
+    {
+      "plugin": "workspace",
+      "path": "/api/workspaces/_associate",
+      "method": "POST",
+      "description": "Associate saved objects with a workspace",
+      "params": {},
+      "query": {},
+      "body": "{ workspaceId: string, savedObjects: [{ id, type }] }",
+      "file": "src/plugins/workspace/server/routes/index.ts"
+    },
+    {
+      "plugin": "workspace",
+      "path": "/api/workspaces/_dissociate",
+      "method": "POST",
+      "description": "Dissociate saved objects from a workspace",
+      "params": {},
+      "query": {},
+      "body": "{ workspaceId: string, savedObjects: [{ id, type }] }",
+      "file": "src/plugins/workspace/server/routes/index.ts"
+    },
+    {
+      "plugin": "workspace",
+      "path": "/api/workspaces/_duplicate_saved_objects",
+      "method": "POST",
+      "description": "Duplicate saved objects to another workspace",
+      "params": {},
+      "query": {},
+      "body": "{ objects: [{ type, id }], includeReferencesDeep: boolean, targetWorkspace: string }",
+      "file": "src/plugins/workspace/server/routes/duplicate.ts"
+    },
+    {
+      "plugin": "chat",
+      "path": "/api/chat/memory/sessions/search",
+      "method": "POST",
+      "description": "Search chat memory sessions (conversation history)",
+      "params": {},
+      "query": { "dataSourceId": "string?" },
+      "body": "{ query: any, from?: number, size?: number, sort?: any }",
+      "file": "src/plugins/chat/server/routes/index.ts"
+    },
+    {
+      "plugin": "chat",
+      "path": "/api/chat/proxy",
+      "method": "POST",
+      "description": "Proxy for AG-UI chat requests (SSE streaming)",
+      "params": {},
+      "query": { "dataSourceId": "string?" },
+      "body": "{ threadId: string, runId: string, messages: any[], tools?: any[], context?: any[], state?: any, forwardedProps?: any }",
+      "file": "src/plugins/chat/server/routes/index.ts"
+    },
+    {
+      "plugin": "bfetch",
+      "path": "/{streaming-path}",
+      "method": "POST",
+      "description": "Dynamic streaming response routes registered by plugins via bfetch.addStreamingResponseRoute()",
+      "params": {},
+      "query": {},
+      "body": "any",
+      "note": "Path is dynamic, registered at runtime by other plugins",
+      "file": "src/plugins/bfetch/server/plugin.ts"
+    }
+  ]
+}

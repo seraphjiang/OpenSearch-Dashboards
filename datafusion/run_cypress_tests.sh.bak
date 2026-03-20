@@ -1,0 +1,221 @@
+#!/bin/bash
+# Helper script to run Cypress tests locally
+
+set -e
+
+# Load nvm if available
+if [ -f "$HOME/.zshenv" ]; then
+  source "$HOME/.zshenv"
+fi
+
+# Use correct Node version
+if command -v nvm &> /dev/null; then
+  nvm use 22
+fi
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+echo "========================================="
+echo "OpenSearch Dashboards Cypress Test Runner"
+echo "========================================="
+echo ""
+
+# Check if services are running
+check_service() {
+  local url=$1
+  local name=$2
+
+  if curl -s "$url" > /dev/null 2>&1; then
+    echo -e "${GREEN}✓${NC} $name is running"
+    return 0
+  else
+    echo -e "${RED}✗${NC} $name is NOT running"
+    return 1
+  fi
+}
+
+echo "Checking services..."
+OPENSEARCH_OK=0
+OSD_OK=0
+
+if check_service "http://localhost:9200" "OpenSearch"; then
+  OPENSEARCH_OK=1
+fi
+
+if check_service "http://localhost:5601/api/status" "OpenSearch Dashboards"; then
+  OSD_OK=1
+fi
+
+echo ""
+
+if [ $OPENSEARCH_OK -eq 0 ] || [ $OSD_OK -eq 0 ]; then
+  echo -e "${YELLOW}⚠️  Services not ready!${NC}"
+  echo ""
+  echo "To start the services:"
+  if [ $OPENSEARCH_OK -eq 0 ]; then
+    echo "  1. Start OpenSearch:"
+    echo "     yarn opensearch snapshot"
+  fi
+  if [ $OSD_OK -eq 0 ]; then
+    echo "  2. Start OSD (in another terminal):"
+    echo "     ./start-osd-cypress.sh"
+  fi
+  echo ""
+  read -p "Continue anyway? (y/N): " -n 1 -r
+  echo
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    exit 1
+  fi
+fi
+
+# Test group selection
+echo "========================================="
+echo "Available Test Groups:"
+echo "========================================="
+echo ""
+echo "Query Enhancements:"
+echo "  10  - Query enhancements (01) - Basic queries"
+echo "  11  - Dashboard sanity test"
+echo "  12  - Query enhancements (02) - Dataset selector, saved queries"
+echo "  13  - Query enhancements (03) - Caching, CSV, field filtering"
+echo "  14  - Query enhancements (04) - Advanced settings, more queries"
+echo "  15  - Query enhancements (05) - Autocomplete, recent queries"
+echo "  s3  - S3 data source tests"
+echo ""
+echo "Explore Feature:"
+echo "  10e - Explore (01) - AI editor, queries, saved search"
+echo "  12e - Explore (02) - Dataset selector, language display"
+echo "  13e - Explore (03) - Field stats, inspect, CSV"
+echo "  14e - Explore (04) - Histogram, traces, Prometheus"
+echo "  15e - Explore (05) - Autocomplete UI, sidebar"
+echo "  16e - Explore (06) - Add to dashboard, rule matching"
+echo "  17e - Explore (07) - More rule matching visualizations"
+echo "  s3e - S3 explore tests"
+echo ""
+echo "Custom:"
+echo "  all - Run all tests"
+echo "  file - Specify a file path"
+echo ""
+
+read -p "Select test group (default: 11): " TEST_GROUP
+TEST_GROUP=${TEST_GROUP:-11}
+
+# Determine spec
+case $TEST_GROUP in
+  10)
+    SPEC=$(yarn --silent osd:ciGroup10)
+    DESC="Query enhancements (01)"
+    ;;
+  11)
+    SPEC=$(yarn --silent osd:ciGroup11)
+    DESC="Dashboard sanity test"
+    ;;
+  12)
+    SPEC=$(yarn --silent osd:ciGroup12)
+    DESC="Query enhancements (02)"
+    ;;
+  13)
+    SPEC=$(yarn --silent osd:ciGroup13)
+    DESC="Query enhancements (03)"
+    ;;
+  14)
+    SPEC=$(yarn --silent osd:ciGroup14)
+    DESC="Query enhancements (04)"
+    ;;
+  15)
+    SPEC=$(yarn --silent osd:ciGroup15)
+    DESC="Query enhancements (05)"
+    ;;
+  s3)
+    SPEC=$(yarn --silent osd:ciGroupS3)
+    DESC="S3 data source tests"
+    ;;
+  10e)
+    SPEC=$(yarn --silent osd:ciGroup10Explore)
+    DESC="Explore (01)"
+    ;;
+  12e)
+    SPEC=$(yarn --silent osd:ciGroup12Explore)
+    DESC="Explore (02)"
+    ;;
+  13e)
+    SPEC=$(yarn --silent osd:ciGroup13Explore)
+    DESC="Explore (03)"
+    ;;
+  14e)
+    SPEC=$(yarn --silent osd:ciGroup14Explore)
+    DESC="Explore (04)"
+    ;;
+  15e)
+    SPEC=$(yarn --silent osd:ciGroup15Explore)
+    DESC="Explore (05)"
+    ;;
+  16e)
+    SPEC=$(yarn --silent osd:ciGroup16Explore)
+    DESC="Explore (06)"
+    ;;
+  17e)
+    SPEC=$(yarn --silent osd:ciGroup17Explore)
+    DESC="Explore (07)"
+    ;;
+  s3e)
+    SPEC=$(yarn --silent osd:ciGroupS3Explore)
+    DESC="S3 explore tests"
+    ;;
+  all)
+    SPEC="cypress/integration/**/*.spec.*"
+    DESC="All tests"
+    ;;
+  file)
+    echo ""
+    read -p "Enter spec file path: " SPEC
+    DESC="Custom file: $SPEC"
+    ;;
+  *)
+    echo -e "${RED}Invalid selection${NC}"
+    exit 1
+    ;;
+esac
+
+echo ""
+echo "========================================="
+echo "Running: $DESC"
+echo "Spec: $SPEC"
+echo "========================================="
+echo ""
+
+# Browser selection
+read -p "Browser (chromium/electron/chrome/firefox, default: chromium): " BROWSER
+BROWSER=${BROWSER:-chromium}
+
+# Set environment variables
+export CYPRESS_VISBUILDER_ENABLED=true
+export CYPRESS_DATASOURCE_MANAGEMENT_ENABLED=false
+export NODE_OPTIONS='--max-old-space-size=6144 --dns-result-order=ipv4first'
+
+# Run mode selection
+echo ""
+read -p "Run mode? (1: headless, 2: interactive, default: 1): " RUN_MODE
+RUN_MODE=${RUN_MODE:-1}
+
+if [ "$RUN_MODE" = "2" ]; then
+  echo ""
+  echo "Opening Cypress interactive mode..."
+  echo "Specs will be filtered to: $SPEC"
+  npx cypress open --browser $BROWSER --config specPattern="$SPEC"
+else
+  echo ""
+  echo "Running tests in headless mode..."
+  yarn cypress:run-without-security --browser $BROWSER --spec "$SPEC"
+fi
+
+echo ""
+echo "========================================="
+echo "Test Results:"
+echo "  Videos: cypress/videos/"
+echo "  Screenshots: cypress/screenshots/"
+echo "========================================="

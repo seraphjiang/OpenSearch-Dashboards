@@ -1,0 +1,2030 @@
+<h1 id="opensearch-dashboards-api-documentation">OpenSearch Dashboards
+API Documentation</h1>
+<blockquote>
+<p>Auto-generated API reference for OpenSearch Dashboards (OSD) internal
+and public HTTP endpoints.</p>
+</blockquote>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+<li><a href="#authentication">Authentication</a></li>
+<li><a href="#core-apis">Core APIs</a>
+<ul>
+<li><a href="#status">Status</a></li>
+<li><a href="#saved-objects">Saved Objects</a></li>
+<li><a href="#ui-settings">UI Settings</a></li>
+<li><a href="#capabilities">Capabilities</a></li>
+</ul></li>
+<li><a href="#plugin-apis">Plugin APIs</a>
+<ul>
+<li><a href="#application-config">Application Config</a></li>
+<li><a href="#banner">Banner</a></li>
+<li><a href="#chat">Chat</a></li>
+<li><a href="#console-proxy">Console (Proxy)</a></li>
+<li><a href="#data-search-index-patterns-autocomplete">Data (Search,
+Index Patterns, Autocomplete)</a></li>
+<li><a href="#data-importer">Data Importer</a></li>
+<li><a href="#data-source">Data Source</a></li>
+<li><a href="#data-source-management">Data Source Management</a></li>
+<li><a href="#home">Home</a></li>
+<li><a href="#index-pattern-management">Index Pattern
+Management</a></li>
+<li><a href="#legacy-exportimport">Legacy Export/Import</a></li>
+<li><a href="#query-enhancements">Query Enhancements</a></li>
+<li><a href="#region-map-geospatial">Region Map (Geospatial)</a></li>
+<li><a href="#saved-objects-management">Saved Objects
+Management</a></li>
+<li><a href="#share-short-urls">Share (Short URLs)</a></li>
+<li><a href="#telemetry">Telemetry</a></li>
+<li><a href="#usage-collection">Usage Collection</a></li>
+<li><a href="#vis-augmenter">Vis Augmenter</a></li>
+<li><a href="#vis-type-timeline">Vis Type Timeline</a></li>
+<li><a href="#vis-type-timeseries-tsvb">Vis Type Timeseries
+(TSVB)</a></li>
+<li><a href="#workspaces">Workspaces</a></li>
+</ul></li>
+<li><a href="#common-patterns">Common Patterns</a></li>
+</ul>
+<hr />
+<h2 id="authentication">Authentication</h2>
+<p>All OSD API endpoints require authentication by default unless
+explicitly marked otherwise. When the OpenSearch Dashboards Security
+plugin is installed:</p>
+<ul>
+<li>Requests must include valid session cookies or authentication
+headers.</li>
+<li>Unauthenticated requests to <code>/api/</code> routes receive a
+<code>401 Unauthorized</code> response.</li>
+<li>The <code>/api/status</code> endpoint can optionally allow anonymous
+access via server configuration
+(<code>status.allowAnonymous: true</code>).</li>
+</ul>
+<p><strong>Common Headers:</strong></p>
+<table>
+<colgroup>
+<col style="width: 38%" />
+<col style="width: 61%" />
+</colgroup>
+<thead>
+<tr>
+<th>Header</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>osd-xsrf: true</code></td>
+<td>Required for all non-GET requests to prevent CSRF attacks</td>
+</tr>
+<tr>
+<td><code>Content-Type: application/json</code></td>
+<td>Required for JSON request bodies</td>
+</tr>
+<tr>
+<td><code>Content-Type: multipart/form-data</code></td>
+<td>Required for file upload endpoints</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="core-apis">Core APIs</h2>
+<h3 id="status">Status</h3>
+<h4 id="get-apistatus"><code>GET /api/status</code></h4>
+<p>Returns the overall health and status of the OpenSearch Dashboards
+server, including version info, plugin statuses, and OS/process
+metrics.</p>
+<p><strong>Authentication:</strong> Configurable (can allow anonymous
+access)</p>
+<p><strong>Query Parameters:</strong></p>
+<table>
+<colgroup>
+<col style="width: 28%" />
+<col style="width: 15%" />
+<col style="width: 23%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>v8format</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Use v8-style status format instead of legacy format</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb1"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> GET <span class="st">&quot;http://localhost:5601/api/status&quot;</span></span></code></pre></div>
+<p><strong>Example Response:</strong></p>
+<div class="sourceCode" id="cb2"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;name&quot;</span><span class="fu">:</span> <span class="st">&quot;opensearch-dashboards&quot;</span><span class="fu">,</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;uuid&quot;</span><span class="fu">:</span> <span class="st">&quot;abc-123-def&quot;</span><span class="fu">,</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;version&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;number&quot;</span><span class="fu">:</span> <span class="st">&quot;2.19.0&quot;</span><span class="fu">,</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;build_hash&quot;</span><span class="fu">:</span> <span class="st">&quot;abc123&quot;</span><span class="fu">,</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;build_number&quot;</span><span class="fu">:</span> <span class="dv">1234</span><span class="fu">,</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;build_snapshot&quot;</span><span class="fu">:</span> <span class="kw">false</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;status&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;overall&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;state&quot;</span><span class="fu">:</span> <span class="st">&quot;green&quot;</span><span class="fu">,</span> <span class="dt">&quot;title&quot;</span><span class="fu">:</span> <span class="st">&quot;Green&quot;</span> <span class="fu">}</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">},</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;metrics&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;last_updated&quot;</span><span class="fu">:</span> <span class="st">&quot;2026-03-19T00:00:00.000Z&quot;</span><span class="fu">,</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;collection_interval_in_millis&quot;</span><span class="fu">:</span> <span class="dv">5000</span><span class="fu">,</span></span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;process&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;memory&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;heap&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;total_in_bytes&quot;</span><span class="fu">:</span> <span class="dv">1000000</span><span class="fu">,</span> <span class="dt">&quot;used_in_bytes&quot;</span><span class="fu">:</span> <span class="dv">500000</span><span class="fu">,</span> <span class="dt">&quot;size_limit&quot;</span><span class="fu">:</span> <span class="dv">2000000</span> <span class="fu">}</span> <span class="fu">},</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;pid&quot;</span><span class="fu">:</span> <span class="dv">12345</span><span class="fu">,</span></span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;uptime_in_millis&quot;</span><span class="fu">:</span> <span class="dv">3600000</span></span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;os&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;load&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;1m&quot;</span><span class="fu">:</span> <span class="fl">1.5</span><span class="fu">,</span> <span class="dt">&quot;5m&quot;</span><span class="fu">:</span> <span class="fl">1.2</span><span class="fu">,</span> <span class="dt">&quot;15m&quot;</span><span class="fu">:</span> <span class="fl">1.0</span> <span class="fu">},</span></span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>      <span class="dt">&quot;memory&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;total_in_bytes&quot;</span><span class="fu">:</span> <span class="dv">8000000000</span><span class="fu">,</span> <span class="dt">&quot;free_in_bytes&quot;</span><span class="fu">:</span> <span class="dv">4000000000</span> <span class="fu">}</span></span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>    <span class="fu">},</span></span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;concurrent_connections&quot;</span><span class="fu">:</span> <span class="dv">5</span><span class="fu">,</span></span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;requests&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;total&quot;</span><span class="fu">:</span> <span class="dv">100</span><span class="fu">,</span> <span class="dt">&quot;disconnects&quot;</span><span class="fu">:</span> <span class="dv">0</span> <span class="fu">}</span></span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<hr />
+<h3 id="saved-objects">Saved Objects</h3>
+<p>The Saved Objects API manages persisted objects such as dashboards,
+visualizations, index patterns, and searches. All endpoints use the base
+path <code>/api/saved_objects/</code>.</p>
+<h4
+id="get-apisaved_objectstypeid"><code>GET /api/saved_objects/{type}/{id}</code></h4>
+<p>Retrieve a single saved object by type and ID.</p>
+<p><strong>Path Parameters:</strong></p>
+<table>
+<colgroup>
+<col style="width: 36%" />
+<col style="width: 20%" />
+<col style="width: 43%" />
+</colgroup>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>type</code></td>
+<td>string</td>
+<td>Saved object type (e.g., <code>dashboard</code>,
+<code>visualization</code>, <code>index-pattern</code>)</td>
+</tr>
+<tr>
+<td><code>id</code></td>
+<td>string</td>
+<td>Saved object ID</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb3"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> GET <span class="st">&quot;http://localhost:5601/api/saved_objects/dashboard/my-dashboard-id&quot;</span> <span class="dt">\</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">-H</span> <span class="st">&quot;osd-xsrf: true&quot;</span></span></code></pre></div>
+<hr />
+<h4
+id="post-apisaved_objectstypeid"><code>POST /api/saved_objects/{type}/{id?}</code></h4>
+<p>Create a new saved object. The <code>id</code> is optional; if
+omitted, one is auto-generated.</p>
+<p><strong>Path Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>type</code></td>
+<td>string</td>
+<td>Yes</td>
+<td>Saved object type</td>
+</tr>
+<tr>
+<td><code>id</code></td>
+<td>string</td>
+<td>No</td>
+<td>Custom ID (auto-generated if omitted)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Query Parameters:</strong></p>
+<table>
+<colgroup>
+<col style="width: 28%" />
+<col style="width: 15%" />
+<col style="width: 23%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>overwrite</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>If <code>true</code>, overwrite an existing object with the same
+ID</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Request Body:</strong></p>
+<table>
+<colgroup>
+<col style="width: 19%" />
+<col style="width: 16%" />
+<col style="width: 27%" />
+<col style="width: 36%" />
+</colgroup>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>attributes</code></td>
+<td>object</td>
+<td>Yes</td>
+<td>The saved object’s attributes (type-specific)</td>
+</tr>
+<tr>
+<td><code>references</code></td>
+<td>array</td>
+<td>No</td>
+<td>References to other saved objects
+<code>[{name, type, id}]</code></td>
+</tr>
+<tr>
+<td><code>migrationVersion</code></td>
+<td>object</td>
+<td>No</td>
+<td>Migration version tracking</td>
+</tr>
+<tr>
+<td><code>initialNamespaces</code></td>
+<td>string[]</td>
+<td>No</td>
+<td>Initial namespace assignments</td>
+</tr>
+<tr>
+<td><code>workspaces</code></td>
+<td>string[]</td>
+<td>No</td>
+<td>Workspace assignments</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb4"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> POST <span class="st">&quot;http://localhost:5601/api/saved_objects/index-pattern&quot;</span> <span class="dt">\</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">-H</span> <span class="st">&quot;osd-xsrf: true&quot;</span> <span class="dt">\</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">-H</span> <span class="st">&quot;Content-Type: application/json&quot;</span> <span class="dt">\</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">-d</span> <span class="st">&#39;{</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="st">    &quot;attributes&quot;: {</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="st">      &quot;title&quot;: &quot;my-index-*&quot;,</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="st">      &quot;timeFieldName&quot;: &quot;@timestamp&quot;</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="st">    }</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="st">  }&#39;</span></span></code></pre></div>
+<hr />
+<h4
+id="put-apisaved_objectstypeid"><code>PUT /api/saved_objects/{type}/{id}</code></h4>
+<p>Update an existing saved object’s attributes.</p>
+<p><strong>Request Body:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>attributes</code></td>
+<td>object</td>
+<td>Yes</td>
+<td>Updated attributes</td>
+</tr>
+<tr>
+<td><code>version</code></td>
+<td>string</td>
+<td>No</td>
+<td>Optimistic concurrency version</td>
+</tr>
+<tr>
+<td><code>references</code></td>
+<td>array</td>
+<td>No</td>
+<td>Updated references <code>[{name, type, id}]</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb5"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> PUT <span class="st">&quot;http://localhost:5601/api/saved_objects/index-pattern/my-id&quot;</span> <span class="dt">\</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">-H</span> <span class="st">&quot;osd-xsrf: true&quot;</span> <span class="dt">\</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">-H</span> <span class="st">&quot;Content-Type: application/json&quot;</span> <span class="dt">\</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">-d</span> <span class="st">&#39;{</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="st">    &quot;attributes&quot;: {</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="st">      &quot;title&quot;: &quot;updated-index-*&quot;</span></span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="st">    }</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="st">  }&#39;</span></span></code></pre></div>
+<hr />
+<h4
+id="delete-apisaved_objectstypeid"><code>DELETE /api/saved_objects/{type}/{id}</code></h4>
+<p>Delete a saved object.</p>
+<p><strong>Query Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>force</code></td>
+<td>boolean</td>
+<td>Force deletion even if the object has references</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb6"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> DELETE <span class="st">&quot;http://localhost:5601/api/saved_objects/visualization/my-vis-id?force=true&quot;</span> <span class="dt">\</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">-H</span> <span class="st">&quot;osd-xsrf: true&quot;</span></span></code></pre></div>
+<hr />
+<h4
+id="get-apisaved_objects_find"><code>GET /api/saved_objects/_find</code></h4>
+<p>Search for saved objects with filtering, pagination, and sorting.</p>
+<p><strong>Query Parameters:</strong></p>
+<table>
+<colgroup>
+<col style="width: 28%" />
+<col style="width: 15%" />
+<col style="width: 23%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>type</code></td>
+<td>string or string[]</td>
+<td><em>required</em></td>
+<td>Saved object type(s) to search</td>
+</tr>
+<tr>
+<td><code>per_page</code></td>
+<td>number</td>
+<td><code>20</code></td>
+<td>Results per page</td>
+</tr>
+<tr>
+<td><code>page</code></td>
+<td>number</td>
+<td><code>1</code></td>
+<td>Page number</td>
+</tr>
+<tr>
+<td><code>search</code></td>
+<td>string</td>
+<td>-</td>
+<td>Full-text search query</td>
+</tr>
+<tr>
+<td><code>default_search_operator</code></td>
+<td><code>OR</code> or <code>AND</code></td>
+<td><code>OR</code></td>
+<td>Search operator for multi-term queries</td>
+</tr>
+<tr>
+<td><code>search_fields</code></td>
+<td>string or string[]</td>
+<td>-</td>
+<td>Fields to search within</td>
+</tr>
+<tr>
+<td><code>sort_field</code></td>
+<td>string</td>
+<td>-</td>
+<td>Field to sort by</td>
+</tr>
+<tr>
+<td><code>has_reference</code></td>
+<td>object</td>
+<td>-</td>
+<td>Filter by reference <code>{type, id}</code></td>
+</tr>
+<tr>
+<td><code>fields</code></td>
+<td>string or string[]</td>
+<td>-</td>
+<td>Fields to include in response</td>
+</tr>
+<tr>
+<td><code>filter</code></td>
+<td>string</td>
+<td>-</td>
+<td>OSD Query Language filter</td>
+</tr>
+<tr>
+<td><code>namespaces</code></td>
+<td>string or string[]</td>
+<td>-</td>
+<td>Namespace filter</td>
+</tr>
+<tr>
+<td><code>workspaces</code></td>
+<td>string or string[]</td>
+<td>-</td>
+<td>Workspace filter</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb7"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> GET <span class="st">&quot;http://localhost:5601/api/saved_objects/_find?type=dashboard&amp;search=sales&amp;per_page=10&quot;</span> <span class="dt">\</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">-H</span> <span class="st">&quot;osd-xsrf: true&quot;</span></span></code></pre></div>
+<hr />
+<h4
+id="post-apisaved_objects_bulk_get"><code>POST /api/saved_objects/_bulk_get</code></h4>
+<p>Retrieve multiple saved objects in a single request.</p>
+<p><strong>Request Body:</strong> Array of objects:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>type</code></td>
+<td>string</td>
+<td>Yes</td>
+<td>Saved object type</td>
+</tr>
+<tr>
+<td><code>id</code></td>
+<td>string</td>
+<td>Yes</td>
+<td>Saved object ID</td>
+</tr>
+<tr>
+<td><code>fields</code></td>
+<td>string[]</td>
+<td>No</td>
+<td>Specific fields to return</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb8"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> POST <span class="st">&quot;http://localhost:5601/api/saved_objects/_bulk_get&quot;</span> <span class="dt">\</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">-H</span> <span class="st">&quot;osd-xsrf: true&quot;</span> <span class="dt">\</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">-H</span> <span class="st">&quot;Content-Type: application/json&quot;</span> <span class="dt">\</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">-d</span> <span class="st">&#39;[</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="st">    {&quot;type&quot;: &quot;dashboard&quot;, &quot;id&quot;: &quot;dash-1&quot;},</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="st">    {&quot;type&quot;: &quot;visualization&quot;, &quot;id&quot;: &quot;vis-1&quot;}</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="st">  ]&#39;</span></span></code></pre></div>
+<hr />
+<h4
+id="post-apisaved_objects_bulk_create"><code>POST /api/saved_objects/_bulk_create</code></h4>
+<p>Create multiple saved objects in a single request.</p>
+<p><strong>Query Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>overwrite</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Overwrite existing objects</td>
+</tr>
+<tr>
+<td><code>workspaces</code></td>
+<td>string or string[]</td>
+<td>-</td>
+<td>Workspace assignments</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Request Body:</strong> Array of saved object definitions
+(same schema as single create, with <code>type</code> included in each
+item).</p>
+<hr />
+<h4
+id="put-apisaved_objects_bulk_update"><code>PUT /api/saved_objects/_bulk_update</code></h4>
+<p>Update multiple saved objects in a single request.</p>
+<p><strong>Request Body:</strong> Array of objects:</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>type</code></td>
+<td>string</td>
+<td>Yes</td>
+<td>Saved object type</td>
+</tr>
+<tr>
+<td><code>id</code></td>
+<td>string</td>
+<td>Yes</td>
+<td>Saved object ID</td>
+</tr>
+<tr>
+<td><code>attributes</code></td>
+<td>object</td>
+<td>Yes</td>
+<td>Updated attributes</td>
+</tr>
+<tr>
+<td><code>version</code></td>
+<td>string</td>
+<td>No</td>
+<td>Optimistic concurrency version</td>
+</tr>
+<tr>
+<td><code>references</code></td>
+<td>array</td>
+<td>No</td>
+<td>Updated references</td>
+</tr>
+<tr>
+<td><code>namespace</code></td>
+<td>string</td>
+<td>No</td>
+<td>Namespace</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4
+id="post-apisaved_objects_export"><code>POST /api/saved_objects/_export</code></h4>
+<p>Export saved objects as NDJSON. Supports exporting by type or by
+specific object references.</p>
+<p><strong>Request Body:</strong></p>
+<table>
+<colgroup>
+<col style="width: 26%" />
+<col style="width: 23%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>type</code></td>
+<td>string or string[]</td>
+<td>Export all objects of these types</td>
+</tr>
+<tr>
+<td><code>objects</code></td>
+<td>array</td>
+<td>Specific objects to export <code>[{type, id}]</code></td>
+</tr>
+<tr>
+<td><code>search</code></td>
+<td>string</td>
+<td>Search filter</td>
+</tr>
+<tr>
+<td><code>includeReferencesDeep</code></td>
+<td>boolean</td>
+<td>Include all referenced objects recursively (default:
+<code>false</code>)</td>
+</tr>
+<tr>
+<td><code>excludeExportDetails</code></td>
+<td>boolean</td>
+<td>Exclude export summary (default: <code>false</code>)</td>
+</tr>
+<tr>
+<td><code>workspaces</code></td>
+<td>string[]</td>
+<td>Filter by workspaces</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Response:</strong> NDJSON stream
+(<code>application/ndjson</code>)</p>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb9"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> POST <span class="st">&quot;http://localhost:5601/api/saved_objects/_export&quot;</span> <span class="dt">\</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">-H</span> <span class="st">&quot;osd-xsrf: true&quot;</span> <span class="dt">\</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">-H</span> <span class="st">&quot;Content-Type: application/json&quot;</span> <span class="dt">\</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">-d</span> <span class="st">&#39;{&quot;type&quot;: &quot;dashboard&quot;, &quot;includeReferencesDeep&quot;: true}&#39;</span> <span class="dt">\</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">-o</span> export.ndjson</span></code></pre></div>
+<hr />
+<h4
+id="post-apisaved_objects_import"><code>POST /api/saved_objects/_import</code></h4>
+<p>Import saved objects from an NDJSON file.</p>
+<p><strong>Content-Type:</strong> <code>multipart/form-data</code></p>
+<p><strong>Query Parameters:</strong></p>
+<table>
+<colgroup>
+<col style="width: 28%" />
+<col style="width: 15%" />
+<col style="width: 23%" />
+<col style="width: 33%" />
+</colgroup>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>overwrite</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Overwrite existing objects</td>
+</tr>
+<tr>
+<td><code>createNewCopies</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Generate new IDs for all imported objects</td>
+</tr>
+<tr>
+<td><code>dataSourceId</code></td>
+<td>string</td>
+<td>-</td>
+<td>Associate with a data source</td>
+</tr>
+<tr>
+<td><code>workspaces</code></td>
+<td>string or string[]</td>
+<td>-</td>
+<td>Assign to workspaces</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Form Data:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>file</code></td>
+<td>file</td>
+<td>NDJSON file (<code>.ndjson</code> extension required)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb10"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> POST <span class="st">&quot;http://localhost:5601/api/saved_objects/_import?overwrite=true&quot;</span> <span class="dt">\</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">-H</span> <span class="st">&quot;osd-xsrf: true&quot;</span> <span class="dt">\</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">-F</span> <span class="st">&quot;file=@export.ndjson&quot;</span></span></code></pre></div>
+<hr />
+<h4
+id="post-apisaved_objects_resolve_import_errors"><code>POST /api/saved_objects/_resolve_import_errors</code></h4>
+<p>Resolve errors from a previous import attempt by providing corrective
+actions (retries, overwrite decisions).</p>
+<p><strong>Content-Type:</strong> <code>multipart/form-data</code></p>
+<p><strong>Query Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>createNewCopies</code></td>
+<td>boolean</td>
+<td><code>false</code></td>
+<td>Generate new IDs</td>
+</tr>
+<tr>
+<td><code>dataSourceId</code></td>
+<td>string</td>
+<td>-</td>
+<td>Data source ID</td>
+</tr>
+<tr>
+<td><code>workspaces</code></td>
+<td>string or string[]</td>
+<td>-</td>
+<td>Workspace assignments</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Form Data:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>file</code></td>
+<td>file</td>
+<td>Original NDJSON file</td>
+</tr>
+<tr>
+<td><code>retries</code></td>
+<td>array</td>
+<td>Retry instructions per failed object</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4
+id="post-apisaved_objects_log_legacy_import"><code>POST /api/saved_objects/_log_legacy_import</code></h4>
+<p><em>(Deprecated)</em> Logs a warning about legacy JSON imports.
+Returns <code>{success: true}</code>.</p>
+<hr />
+<h4
+id="post-internalsaved_objects_migrate"><code>POST /internal/saved_objects/_migrate</code></h4>
+<p><em>(Internal)</em> Trigger saved objects migration. Used during
+upgrade processes.</p>
+<hr />
+<h3 id="ui-settings">UI Settings</h3>
+<p>Manage user interface settings (advanced settings). All endpoints use
+the path prefix <code>/api/opensearch-dashboards/settings</code>.</p>
+<h4
+id="get-apiopensearch-dashboardssettings"><code>GET /api/opensearch-dashboards/settings</code></h4>
+<p>Get all user-provided UI settings.</p>
+<p><strong>Query Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>scope</code></td>
+<td><code>global</code>, <code>user</code>, or
+<code>workspace</code></td>
+<td>Settings scope filter</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb11"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> GET <span class="st">&quot;http://localhost:5601/api/opensearch-dashboards/settings&quot;</span> <span class="dt">\</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">-H</span> <span class="st">&quot;osd-xsrf: true&quot;</span></span></code></pre></div>
+<p><strong>Example Response:</strong></p>
+<div class="sourceCode" id="cb12"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;settings&quot;</span><span class="fu">:</span> <span class="fu">{</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;dateFormat&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;userValue&quot;</span><span class="fu">:</span> <span class="st">&quot;YYYY-MM-DD&quot;</span> <span class="fu">},</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">&quot;defaultIndex&quot;</span><span class="fu">:</span> <span class="fu">{</span> <span class="dt">&quot;userValue&quot;</span><span class="fu">:</span> <span class="st">&quot;my-index-*&quot;</span> <span class="fu">}</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">}</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<hr />
+<h4
+id="post-apiopensearch-dashboardssettingskey"><code>POST /api/opensearch-dashboards/settings/{key}</code></h4>
+<p>Set a single UI setting.</p>
+<p><strong>Path Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>key</code></td>
+<td>string</td>
+<td>Setting key (e.g., <code>dateFormat</code>,
+<code>defaultIndex</code>)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Query Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>scope</code></td>
+<td><code>global</code> or <code>user</code></td>
+<td>Settings scope</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Request Body:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>value</code></td>
+<td>any</td>
+<td>The new setting value</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb13"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> POST <span class="st">&quot;http://localhost:5601/api/opensearch-dashboards/settings/dateFormat&quot;</span> <span class="dt">\</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">-H</span> <span class="st">&quot;osd-xsrf: true&quot;</span> <span class="dt">\</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">-H</span> <span class="st">&quot;Content-Type: application/json&quot;</span> <span class="dt">\</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">-d</span> <span class="st">&#39;{&quot;value&quot;: &quot;YYYY-MM-DD HH:mm:ss&quot;}&#39;</span></span></code></pre></div>
+<hr />
+<h4
+id="post-apiopensearch-dashboardssettings"><code>POST /api/opensearch-dashboards/settings</code></h4>
+<p>Set multiple UI settings at once.</p>
+<p><strong>Request Body:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>changes</code></td>
+<td>object</td>
+<td>Key-value pairs of settings to update</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4
+id="delete-apiopensearch-dashboardssettingskey"><code>DELETE /api/opensearch-dashboards/settings/{key}</code></h4>
+<p>Reset a UI setting to its default value.</p>
+<p><strong>Query Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>scope</code></td>
+<td><code>global</code> or <code>user</code></td>
+<td>Settings scope</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h3 id="capabilities">Capabilities</h3>
+<h4
+id="post-apicorecapabilities"><code>POST /api/core/capabilities</code></h4>
+<p>Resolve UI capabilities for the current user based on registered
+applications.</p>
+<p><strong>Authentication:</strong> Optional</p>
+<p><strong>Request Body:</strong></p>
+<table>
+<colgroup>
+<col style="width: 26%" />
+<col style="width: 23%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>applications</code></td>
+<td>string[]</td>
+<td>List of application IDs to resolve capabilities for</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb14"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> POST <span class="st">&quot;http://localhost:5601/api/core/capabilities&quot;</span> <span class="dt">\</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">-H</span> <span class="st">&quot;osd-xsrf: true&quot;</span> <span class="dt">\</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">-H</span> <span class="st">&quot;Content-Type: application/json&quot;</span> <span class="dt">\</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">-d</span> <span class="st">&#39;{&quot;applications&quot;: [&quot;discover&quot;, &quot;dashboard&quot;, &quot;visualize&quot;]}&#39;</span></span></code></pre></div>
+<hr />
+<h2 id="plugin-apis">Plugin APIs</h2>
+<h3 id="application-config">Application Config</h3>
+<p>Manage application-level configuration key-value pairs.</p>
+<h4 id="get-apiappconfig"><code>GET /api/appconfig</code></h4>
+<p>Get all application configuration entries.</p>
+<h4
+id="get-apiappconfigentity"><code>GET /api/appconfig/{entity}</code></h4>
+<p>Get a single configuration value by entity key.</p>
+<h4
+id="post-apiappconfigentity"><code>POST /api/appconfig/{entity}</code></h4>
+<p>Set or update a configuration value.</p>
+<p><strong>Request Body:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>newValue</code></td>
+<td>string</td>
+<td>The new configuration value</td>
+</tr>
+</tbody>
+</table>
+<h4
+id="delete-apiappconfigentity"><code>DELETE /api/appconfig/{entity}</code></h4>
+<p>Delete a configuration entry.</p>
+<hr />
+<h3 id="banner">Banner</h3>
+<h4
+id="get-api_plugins_bannercontent"><code>GET /api/_plugins/_banner/content</code></h4>
+<p>Get the current banner configuration (content, color, icon, markdown
+settings, size).</p>
+<hr />
+<h3 id="chat">Chat</h3>
+<p>AI-powered chat assistant using AG-UI protocol.</p>
+<h4
+id="post-apichatmemorysessionssearch"><code>POST /api/chat/memory/sessions/search</code></h4>
+<p>Search conversation history sessions with pagination.</p>
+<h4 id="post-apichatproxy"><code>POST /api/chat/proxy</code></h4>
+<p>Proxy AI agent requests to AG-UI or ML Commons backend. Supports
+Server-Sent Events (SSE) streaming for real-time responses.</p>
+<hr />
+<h3 id="console-proxy">Console (Proxy)</h3>
+<p>The Console plugin provides a proxy to the OpenSearch cluster and
+related configuration endpoints.</p>
+<h4 id="post-apiconsoleproxy"><code>POST /api/console/proxy</code></h4>
+<p>Proxy requests to the OpenSearch cluster. This is the primary
+endpoint used by the Dev Tools Console.</p>
+<h4
+id="get-apiconsoleopensearch_config"><code>GET /api/console/opensearch_config</code></h4>
+<p>Get OpenSearch connection configuration visible to the Console.</p>
+<h4
+id="get-apiconsoleapi_server"><code>GET /api/console/api_server</code></h4>
+<p>Get the Console’s spec definitions for API autocompletion.</p>
+<hr />
+<h3 id="data-search-index-patterns-autocomplete">Data (Search, Index
+Patterns, Autocomplete)</h3>
+<p>The Data plugin provides core search, index pattern, and autocomplete
+functionality.</p>
+<h4
+id="post-internalsearchstrategyid"><code>POST /internal/search/{strategy}/{id?}</code></h4>
+<p><em>(Internal)</em> Execute a search using a registered strategy
+(e.g., <code>opensearch</code>, <code>ppl</code>, <code>sql</code>).</p>
+<h4
+id="delete-internalsearchstrategyid"><code>DELETE /internal/search/{strategy}/{id}</code></h4>
+<p><em>(Internal)</em> Cancel an async search by strategy and ID.</p>
+<h4 id="post-internal_msearch"><code>POST /internal/_msearch</code></h4>
+<p><em>(Internal, Deprecated)</em> Execute a multi-search request.</p>
+<p><strong>Query Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>data_source_id</code></td>
+<td>string</td>
+<td>Target data source</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Request Body:</strong></p>
+<table>
+<colgroup>
+<col style="width: 26%" />
+<col style="width: 23%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>searches</code></td>
+<td>array</td>
+<td>Array of <code>{header: {index, preference?}, body}</code>
+pairs</td>
+</tr>
+</tbody>
+</table>
+<h4
+id="get-apiindex_patterns_fields_for_wildcard"><code>GET /api/index_patterns/_fields_for_wildcard</code></h4>
+<p>Get field capabilities for an index pattern.</p>
+<p><strong>Query Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pattern</code></td>
+<td>string</td>
+<td>Index pattern (e.g., <code>logs-*</code>)</td>
+</tr>
+<tr>
+<td><code>meta_fields</code></td>
+<td>string or string[]</td>
+<td>Meta fields to include</td>
+</tr>
+<tr>
+<td><code>data_source</code></td>
+<td>string</td>
+<td>Data source ID</td>
+</tr>
+</tbody>
+</table>
+<h4
+id="get-apiindex_patterns_fields_for_time_pattern"><code>GET /api/index_patterns/_fields_for_time_pattern</code></h4>
+<p>Get fields for a time-based index pattern.</p>
+<p><strong>Query Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>pattern</code></td>
+<td>string</td>
+<td>Index pattern</td>
+</tr>
+<tr>
+<td><code>interval</code></td>
+<td>string</td>
+<td>Time interval</td>
+</tr>
+<tr>
+<td><code>look_back</code></td>
+<td>number</td>
+<td>Number of intervals to look back</td>
+</tr>
+<tr>
+<td><code>meta_fields</code></td>
+<td>string or string[]</td>
+<td>Meta fields to include</td>
+</tr>
+<tr>
+<td><code>data_source</code></td>
+<td>string</td>
+<td>Data source ID</td>
+</tr>
+</tbody>
+</table>
+<h4
+id="post-apiopensearch-dashboardssuggestionsvaluesindex"><code>POST /api/opensearch-dashboards/suggestions/values/{index}</code></h4>
+<p>Get autocomplete value suggestions for a field within an index.</p>
+<p><strong>Request Body:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>field</code></td>
+<td>string</td>
+<td>Field name</td>
+</tr>
+<tr>
+<td><code>query</code></td>
+<td>string</td>
+<td>Partial value to autocomplete</td>
+</tr>
+<tr>
+<td><code>boolFilter</code></td>
+<td>object</td>
+<td>Optional filter context</td>
+</tr>
+<tr>
+<td><code>dataSourceId</code></td>
+<td>string</td>
+<td>Data source ID</td>
+</tr>
+</tbody>
+</table>
+<h4
+id="get-apiopensearch-dashboardsscriptslanguages"><code>GET /api/opensearch-dashboards/scripts/languages</code></h4>
+<p>Get supported scripting languages from OpenSearch.</p>
+<h4
+id="post-apiopensearch-dashboardsdql_opt_in_stats"><code>POST /api/opensearch-dashboards/dql_opt_in_stats</code></h4>
+<p>Track DQL opt-in/opt-out telemetry.</p>
+<hr />
+<h3 id="data-importer">Data Importer</h3>
+<h4
+id="post-apidata_importer_import_file"><code>POST /api/data_importer/_import_file</code></h4>
+<p>Import data from a file (CSV, JSON, NDJSON) into an OpenSearch
+index.</p>
+<p><strong>Content-Type:</strong> <code>multipart/form-data</code></p>
+<p><strong>Query Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>indexName</code></td>
+<td>string</td>
+<td>Yes</td>
+<td>Target index name</td>
+</tr>
+<tr>
+<td><code>createMode</code></td>
+<td>boolean</td>
+<td>Yes</td>
+<td>Whether to create the index</td>
+</tr>
+<tr>
+<td><code>fileExtension</code></td>
+<td>string</td>
+<td>Yes</td>
+<td>File type extension</td>
+</tr>
+<tr>
+<td><code>dataSource</code></td>
+<td>string</td>
+<td>No</td>
+<td>Data source ID</td>
+</tr>
+<tr>
+<td><code>delimiter</code></td>
+<td>string</td>
+<td>No</td>
+<td>CSV delimiter character</td>
+</tr>
+</tbody>
+</table>
+<h4
+id="post-apidata_importer_import_text"><code>POST /api/data_importer/_import_text</code></h4>
+<p>Import data from text content directly into an OpenSearch index.</p>
+<h4
+id="get-apidata_importer_cat_indices"><code>GET /api/data_importer/_cat_indices</code></h4>
+<p>List available indices for import targeting.</p>
+<h4
+id="post-apidata_importer_preview"><code>POST /api/data_importer/_preview</code></h4>
+<p>Preview imported data before committing.</p>
+<hr />
+<h3 id="data-source">Data Source</h3>
+<p>Manage external OpenSearch data source connections.</p>
+<h4
+id="post-internaldata-source-managementvalidate"><code>POST /internal/data-source-management/validate</code></h4>
+<p>Test connection to a data source.</p>
+<p><strong>Request Body:</strong></p>
+<table>
+<colgroup>
+<col style="width: 26%" />
+<col style="width: 23%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>string</td>
+<td>Existing data source ID (optional for new connections)</td>
+</tr>
+<tr>
+<td><code>dataSourceAttr.endpoint</code></td>
+<td>string</td>
+<td>OpenSearch endpoint URL</td>
+</tr>
+<tr>
+<td><code>dataSourceAttr.auth</code></td>
+<td>object</td>
+<td>Authentication configuration</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Auth Types:</strong> - <code>no_auth</code> - No
+authentication - <code>username_password</code> - Basic auth with
+<code>{username, password}</code> - <code>sigv4</code> - AWS SigV4 with
+<code>{region, accessKey, secretKey, service}</code></p>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb15"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> POST <span class="st">&quot;http://localhost:5601/internal/data-source-management/validate&quot;</span> <span class="dt">\</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">-H</span> <span class="st">&quot;osd-xsrf: true&quot;</span> <span class="dt">\</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">-H</span> <span class="st">&quot;Content-Type: application/json&quot;</span> <span class="dt">\</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">-d</span> <span class="st">&#39;{</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="st">    &quot;dataSourceAttr&quot;: {</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="st">      &quot;endpoint&quot;: &quot;https://my-opensearch:9200&quot;,</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a><span class="st">      &quot;auth&quot;: {</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a><span class="st">        &quot;type&quot;: &quot;username_password&quot;,</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a><span class="st">        &quot;credentials&quot;: {</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a><span class="st">          &quot;username&quot;: &quot;admin&quot;,</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a><span class="st">          &quot;password&quot;: &quot;admin&quot;</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a><span class="st">        }</span></span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a><span class="st">      }</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a><span class="st">    }</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a><span class="st">  }&#39;</span></span></code></pre></div>
+<h4
+id="post-internaldata-source-managementfetchdatasourcemetadata"><code>POST /internal/data-source-management/fetchDataSourceMetaData</code></h4>
+<p>Fetch metadata (version, cluster info) from a data source.</p>
+<hr />
+<h3 id="data-source-management">Data Source Management</h3>
+<h4 id="async-query-jobs">Async Query Jobs</h4>
+<h4
+id="post-apidatasourcemanagementqueryjobs"><code>POST /api/datasourcemanagement/query/jobs</code></h4>
+<p>Execute an async direct query (PPL/SQL) job against a data
+connection.</p>
+<p><strong>Request Body:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>query</code></td>
+<td>string</td>
+<td>Query string</td>
+</tr>
+<tr>
+<td><code>lang</code></td>
+<td>string</td>
+<td>Language (ppl, sql)</td>
+</tr>
+<tr>
+<td><code>datasource</code></td>
+<td>string</td>
+<td>Data source name</td>
+</tr>
+<tr>
+<td><code>sessionId</code></td>
+<td>string</td>
+<td>Optional session ID</td>
+</tr>
+</tbody>
+</table>
+<h4
+id="get-apidatasourcemanagementqueryjobsqueryiddatasourcemdsid"><code>GET /api/datasourcemanagement/query/jobs/{queryId}/{dataSourceMDSId?}</code></h4>
+<p>Get the status and results of an async query job.</p>
+<h4
+id="delete-apidatasourcemanagementqueryjobsqueryid"><code>DELETE /api/datasourcemanagement/query/jobs/{queryId}</code></h4>
+<p>Cancel or delete a running query job.</p>
+<h4 id="direct-query-data-connections">Direct Query Data
+Connections</h4>
+<h4
+id="get-apidirectquerydataconnections"><code>GET /api/directquery/dataconnections</code></h4>
+<p>List all data connections.</p>
+<h4
+id="get-apidirectquerydataconnectionsname"><code>GET /api/directquery/dataconnections/{name}</code></h4>
+<p>Get a data connection by name.</p>
+<h4
+id="post-apidirectquerydataconnections"><code>POST /api/directquery/dataconnections</code></h4>
+<p>Create a new data connection.</p>
+<p><strong>Request Body:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td>string</td>
+<td>Connection name</td>
+</tr>
+<tr>
+<td><code>connector</code></td>
+<td>string</td>
+<td>Connector type (e.g., Prometheus, S3)</td>
+</tr>
+<tr>
+<td><code>allowedRoles</code></td>
+<td>string[]</td>
+<td>Allowed roles</td>
+</tr>
+<tr>
+<td><code>properties</code></td>
+<td>object</td>
+<td>Connection properties</td>
+</tr>
+</tbody>
+</table>
+<h4
+id="post-apidirectquerydataconnectionsedit"><code>POST /api/directquery/dataconnections/edit</code></h4>
+<p>Edit a data connection’s roles.</p>
+<h4
+id="post-apidirectquerydataconnectionseditstatus"><code>POST /api/directquery/dataconnections/edit/status</code></h4>
+<p>Update a data connection’s status.</p>
+<h4
+id="delete-apidirectquerydataconnectionsname"><code>DELETE /api/directquery/dataconnections/{name}</code></h4>
+<p>Delete a data connection.</p>
+<blockquote>
+<p><strong>Note:</strong> All <code>/api/directquery/</code> routes also
+have MDS variants with <code>/dataSourceMDSId={id}</code> path suffix
+for multi-data-source environments.</p>
+</blockquote>
+<h4 id="dsl-ppl-proxy-routes">DSL &amp; PPL Proxy Routes</h4>
+<h4
+id="post-apidirectquerydslsearch"><code>POST /api/directquery/dsl/search</code></h4>
+<p>Proxy DSL search queries to a data connection.</p>
+<h4
+id="get-apidirectquerydslcat.indices"><code>GET /api/directquery/dsl/cat.indices</code></h4>
+<p>Proxy cat indices request.</p>
+<h4
+id="get-apidirectquerydslindices.getfieldmapping"><code>GET /api/directquery/dsl/indices.getFieldMapping</code></h4>
+<p>Proxy get field mapping request.</p>
+<h4
+id="get-apidirectquerydslindices.getfieldsettings"><code>GET /api/directquery/dsl/indices.getFieldSettings</code></h4>
+<p>Proxy get field settings request.</p>
+<h4
+id="post-apidirectquerypplsearch"><code>POST /api/directquery/ppl/search</code></h4>
+<p>Execute a PPL query against a data connection.</p>
+<hr />
+<h3 id="home">Home</h3>
+<h4
+id="post-apihomehits_status"><code>POST /api/home/hits_status</code></h4>
+<p>Check whether an index has any matching documents (used by the home
+page to detect data).</p>
+<p><strong>Request Body:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>index</code></td>
+<td>string</td>
+<td>Index pattern to search</td>
+</tr>
+<tr>
+<td><code>query</code></td>
+<td>object</td>
+<td>OpenSearch query DSL</td>
+</tr>
+</tbody>
+</table>
+<h4 id="get-apisample_data"><code>GET /api/sample_data</code></h4>
+<p>List available sample datasets and their install status.</p>
+<p><strong>Query Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>data_source_id</code></td>
+<td>string</td>
+<td>Data source ID</td>
+</tr>
+</tbody>
+</table>
+<h4
+id="post-apisample_dataid"><code>POST /api/sample_data/{id}</code></h4>
+<p>Install a sample dataset (flights, ecommerce, logs).</p>
+<p><strong>Query Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>now</code></td>
+<td>string</td>
+<td>Override current timestamp</td>
+</tr>
+<tr>
+<td><code>data_source_id</code></td>
+<td>string</td>
+<td>Target data source</td>
+</tr>
+</tbody>
+</table>
+<h4
+id="delete-apisample_dataid"><code>DELETE /api/sample_data/{id}</code></h4>
+<p>Uninstall a sample dataset.</p>
+<hr />
+<h3 id="index-pattern-management">Index Pattern Management</h3>
+<h4
+id="get-internalindex-pattern-managementresolve_indexquery"><code>GET /internal/index-pattern-management/resolve_index/{query}</code></h4>
+<p><em>(Internal)</em> Resolve index names matching a pattern. Used by
+the index pattern creation workflow.</p>
+<p><strong>Path Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>query</code></td>
+<td>string</td>
+<td>Index pattern query (supports wildcards)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Query Parameters:</strong></p>
+<table>
+<colgroup>
+<col style="width: 36%" />
+<col style="width: 20%" />
+<col style="width: 43%" />
+</colgroup>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>expand_wildcards</code></td>
+<td>string</td>
+<td><code>all</code>, <code>open</code>, <code>closed</code>,
+<code>hidden</code>, or <code>none</code></td>
+</tr>
+<tr>
+<td><code>data_source</code></td>
+<td>string</td>
+<td>Data source ID</td>
+</tr>
+</tbody>
+</table>
+<h4
+id="post-internalindex-pattern-managementpreview_scripted_field"><code>POST /internal/index-pattern-management/preview_scripted_field</code></h4>
+<p><em>(Internal)</em> Preview a scripted field’s output on sample
+documents.</p>
+<hr />
+<h3 id="legacy-exportimport">Legacy Export/Import</h3>
+<h4
+id="get-apiopensearch-dashboardsdashboardsexport"><code>GET /api/opensearch-dashboards/dashboards/export</code></h4>
+<p>Export dashboards and their dependencies in legacy format.</p>
+<h4
+id="post-apiopensearch-dashboardsdashboardsimport"><code>POST /api/opensearch-dashboards/dashboards/import</code></h4>
+<p>Import dashboards from legacy format.</p>
+<hr />
+<h3 id="query-enhancements">Query Enhancements</h3>
+<h4
+id="post-apienhancementssearchstrategy"><code>POST /api/enhancements/search/{strategy}</code></h4>
+<p>Execute a search using a specific query strategy (SQL, PPL,
+etc.).</p>
+<h4
+id="get-apienhancementsassistlanguages"><code>GET /api/enhancements/assist/languages</code></h4>
+<p>List supported query assist languages.</p>
+<h4
+id="post-apienhancementsassistgenerate"><code>POST /api/enhancements/assist/generate</code></h4>
+<p>Generate a query using AI assistance with time range support.</p>
+<h4
+id="get-apienhancementsjobs"><code>GET /api/enhancements/jobs</code></h4>
+<h4
+id="post-apienhancementsjobs"><code>POST /api/enhancements/jobs</code></h4>
+<h4
+id="delete-apienhancementsjobs"><code>DELETE /api/enhancements/jobs</code></h4>
+<p>Async query job management: check status, create jobs, and cancel
+running jobs.</p>
+<h4
+id="get-apienhancementsconnections"><code>GET /api/enhancements/connections</code></h4>
+<p>List available data connections.</p>
+<h4
+id="get-apienhancementsconnectionsid"><code>GET /api/enhancements/connections/{id?}</code></h4>
+<p>Get a specific data connection by ID or the default connection.</p>
+<h4
+id="get-apienhancementsremote_clusterlist"><code>GET /api/enhancements/remote_cluster/list</code></h4>
+<p>List remote cluster connections.</p>
+<h4
+id="get-apienhancementsremote_clusterindexes"><code>GET /api/enhancements/remote_cluster/indexes</code></h4>
+<p>Get indexes from a remote cluster.</p>
+<h4
+id="post-apienhancementsresources"><code>POST /api/enhancements/resources</code></h4>
+<p>Resource discovery endpoint.</p>
+<hr />
+<h3 id="region-map-geospatial">Region Map (Geospatial)</h3>
+<h4
+id="post-apigeospatial_indices"><code>POST /api/geospatial/_indices</code></h4>
+<p>List indices matching a pattern (filtered to geospatial/map
+indices).</p>
+<h4
+id="post-apigeospatial_search"><code>POST /api/geospatial/_search</code></h4>
+<p>Search a geospatial index for map data.</p>
+<h4
+id="post-apigeospatial_mappings"><code>POST /api/geospatial/_mappings</code></h4>
+<p>Get field mappings for a geospatial index.</p>
+<hr />
+<h3 id="saved-objects-management">Saved Objects Management</h3>
+<p>Management UI-specific endpoints for browsing and managing saved
+objects.</p>
+<h4
+id="get-apiopensearch-dashboardsmanagementsaved_objects_find"><code>GET /api/opensearch-dashboards/management/saved_objects/_find</code></h4>
+<p>Enhanced find endpoint with management-specific metadata
+injection.</p>
+<p><strong>Query Parameters:</strong> Same as core <code>_find</code>
+plus:</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sortOrder</code></td>
+<td>string</td>
+<td>Sort direction</td>
+</tr>
+<tr>
+<td><code>fields</code></td>
+<td>string or string[]</td>
+<td>Fields to include in response</td>
+</tr>
+</tbody>
+</table>
+<h4
+id="get-apiopensearch-dashboardsmanagementsaved_objectstypeid"><code>GET /api/opensearch-dashboards/management/saved_objects/{type}/{id}</code></h4>
+<p>Get a saved object with management metadata.</p>
+<h4
+id="post-apiopensearch-dashboardsmanagementsaved_objectsscrollcounts"><code>POST /api/opensearch-dashboards/management/saved_objects/scroll/counts</code></h4>
+<p>Get document counts per saved object type.</p>
+<h4
+id="post-apiopensearch-dashboardsmanagementsaved_objectsscrollexport"><code>POST /api/opensearch-dashboards/management/saved_objects/scroll/export</code></h4>
+<p>Stream export all objects of given types.</p>
+<h4
+id="get-apiopensearch-dashboardsmanagementsaved_objectsrelationshipstypeid"><code>GET /api/opensearch-dashboards/management/saved_objects/relationships/{type}/{id}</code></h4>
+<p>Get relationship graph for a saved object.</p>
+<h4
+id="get-apiopensearch-dashboardsmanagementsaved_objects_allowed_types"><code>GET /api/opensearch-dashboards/management/saved_objects/_allowed_types</code></h4>
+<p>Get the list of saved object types that can be imported/exported.</p>
+<hr />
+<h3 id="share-short-urls">Share (Short URLs)</h3>
+<h4 id="post-apishorten_url"><code>POST /api/shorten_url</code></h4>
+<p>Create a shortened URL for sharing.</p>
+<p><strong>Request Body:</strong></p>
+<table>
+<colgroup>
+<col style="width: 26%" />
+<col style="width: 23%" />
+<col style="width: 50%" />
+</colgroup>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>url</code></td>
+<td>string</td>
+<td>The long URL to shorten (must be a valid internal OSD path)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example Response:</strong></p>
+<div class="sourceCode" id="cb16"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;urlId&quot;</span><span class="fu">:</span> <span class="st">&quot;abc123&quot;</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h4
+id="get-apishort_urlurlid"><code>GET /api/short_url/{urlId}</code></h4>
+<p>Retrieve the original URL from a shortened URL ID.</p>
+<h4 id="get-gotourlid"><code>GET /goto/{urlId}</code></h4>
+<p>Redirect to the full URL from a short URL ID.</p>
+<hr />
+<h3 id="telemetry">Telemetry</h3>
+<h4
+id="post-apitelemetryv2optin"><code>POST /api/telemetry/v2/optIn</code></h4>
+<p>Opt in or out of telemetry collection.</p>
+<h4
+id="post-apitelemetryv2clusters_stats"><code>POST /api/telemetry/v2/clusters/_stats</code></h4>
+<p>Fetch telemetry usage statistics.</p>
+<h4
+id="post-apitelemetryv2clusters_opt_in_stats"><code>POST /api/telemetry/v2/clusters/_opt_in_stats</code></h4>
+<p>Report opt-in statistics.</p>
+<h4
+id="put-apitelemetryv2userhasseennotice"><code>PUT /api/telemetry/v2/userHasSeenNotice</code></h4>
+<p>Mark the telemetry notice as seen by the user.</p>
+<hr />
+<h3 id="usage-collection">Usage Collection</h3>
+<h4
+id="post-apiui_metricreport"><code>POST /api/ui_metric/report</code></h4>
+<p>Report batched UI interaction metrics for usage tracking.</p>
+<h4 id="get-apistats"><code>GET /api/stats</code></h4>
+<p>Get aggregated cluster usage statistics.</p>
+<hr />
+<h3 id="vis-augmenter">Vis Augmenter</h3>
+<h4
+id="get-apivis_augmenterstats"><code>GET /api/vis_augmenter/stats</code></h4>
+<p>Get statistics about augmented visualizations.</p>
+<hr />
+<h3 id="vis-type-timeline">Vis Type Timeline</h3>
+<h4
+id="get-apitimelinefunctions"><code>GET /api/timeline/functions</code></h4>
+<p>List available Timeline functions.</p>
+<h4 id="post-apitimelinerun"><code>POST /api/timeline/run</code></h4>
+<p>Execute a Timeline expression.</p>
+<h4
+id="get-apitimelinevalidatees"><code>GET /api/timeline/validate/es</code></h4>
+<p>Validate an OpenSearch query used in Timeline expressions.</p>
+<hr />
+<h3 id="vis-type-timeseries-tsvb">Vis Type Timeseries (TSVB)</h3>
+<h4 id="get-apimetricsfields"><code>GET /api/metrics/fields</code></h4>
+<p>Get available fields for an index pattern (used by TSVB).</p>
+<p><strong>Query Parameters:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>index</code></td>
+<td>string</td>
+<td>Index pattern</td>
+</tr>
+<tr>
+<td><code>data_source</code></td>
+<td>string</td>
+<td>Data source ID</td>
+</tr>
+</tbody>
+</table>
+<h4
+id="post-apimetricsvisdata"><code>POST /api/metrics/vis/data</code></h4>
+<p>Execute a TSVB visualization query and return time-series data.</p>
+<h4
+id="post-apimetricsvisdata-raw"><code>POST /api/metrics/vis/data-raw</code></h4>
+<p>Execute a TSVB query and return raw, unprocessed data.</p>
+<hr />
+<h3 id="workspaces">Workspaces</h3>
+<p>Manage workspaces for organizing saved objects and access
+control.</p>
+<p><strong>Base URL:</strong> <code>/api/workspaces</code></p>
+<h4
+id="post-apiworkspaces_list"><code>POST /api/workspaces/_list</code></h4>
+<p>List workspaces with optional search and pagination.</p>
+<p><strong>Request Body:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>search</code></td>
+<td>string</td>
+<td>-</td>
+<td>Search query</td>
+</tr>
+<tr>
+<td><code>sortOrder</code></td>
+<td>string</td>
+<td>-</td>
+<td>Sort direction</td>
+</tr>
+<tr>
+<td><code>perPage</code></td>
+<td>number</td>
+<td><code>20</code></td>
+<td>Results per page</td>
+</tr>
+<tr>
+<td><code>page</code></td>
+<td>number</td>
+<td><code>1</code></td>
+<td>Page number</td>
+</tr>
+<tr>
+<td><code>sortField</code></td>
+<td>string</td>
+<td>-</td>
+<td>Field to sort by</td>
+</tr>
+<tr>
+<td><code>searchFields</code></td>
+<td>string[]</td>
+<td>-</td>
+<td>Fields to search</td>
+</tr>
+<tr>
+<td><code>permissionModes</code></td>
+<td>string[]</td>
+<td>-</td>
+<td>Filter by permission mode</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4 id="get-apiworkspacesid"><code>GET /api/workspaces/{id}</code></h4>
+<p>Get a workspace by ID.</p>
+<hr />
+<h4 id="post-apiworkspaces"><code>POST /api/workspaces</code></h4>
+<p>Create a new workspace.</p>
+<p><strong>Request Body:</strong></p>
+<table>
+<colgroup>
+<col style="width: 19%" />
+<col style="width: 16%" />
+<col style="width: 27%" />
+<col style="width: 36%" />
+</colgroup>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Required</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>attributes.name</code></td>
+<td>string</td>
+<td>Yes</td>
+<td>Workspace name (max 40 chars)</td>
+</tr>
+<tr>
+<td><code>attributes.features</code></td>
+<td>string[]</td>
+<td>Yes</td>
+<td>Use case feature configurations (exactly one use case required)</td>
+</tr>
+<tr>
+<td><code>attributes.description</code></td>
+<td>string</td>
+<td>No</td>
+<td>Description (max 200 chars)</td>
+</tr>
+<tr>
+<td><code>attributes.color</code></td>
+<td>string</td>
+<td>No</td>
+<td>Hex color code</td>
+</tr>
+<tr>
+<td><code>attributes.icon</code></td>
+<td>string</td>
+<td>No</td>
+<td>Icon identifier</td>
+</tr>
+<tr>
+<td><code>settings.permissions</code></td>
+<td>object</td>
+<td>No</td>
+<td>Permission mappings by mode and principal type</td>
+</tr>
+<tr>
+<td><code>settings.dataSources</code></td>
+<td>string[]</td>
+<td>No</td>
+<td>Associated data source IDs</td>
+</tr>
+<tr>
+<td><code>settings.dataConnections</code></td>
+<td>string[]</td>
+<td>No</td>
+<td>Associated data connection IDs</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Example Request:</strong></p>
+<div class="sourceCode" id="cb17"><pre
+class="sourceCode bash"><code class="sourceCode bash"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="ex">curl</span> <span class="at">-X</span> POST <span class="st">&quot;http://localhost:5601/api/workspaces&quot;</span> <span class="dt">\</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">-H</span> <span class="st">&quot;osd-xsrf: true&quot;</span> <span class="dt">\</span></span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">-H</span> <span class="st">&quot;Content-Type: application/json&quot;</span> <span class="dt">\</span></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">-d</span> <span class="st">&#39;{</span></span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a><span class="st">    &quot;attributes&quot;: {</span></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="st">      &quot;name&quot;: &quot;Analytics Team&quot;,</span></span>
+<span id="cb17-7"><a href="#cb17-7" aria-hidden="true" tabindex="-1"></a><span class="st">      &quot;features&quot;: [&quot;use-case-observability&quot;],</span></span>
+<span id="cb17-8"><a href="#cb17-8" aria-hidden="true" tabindex="-1"></a><span class="st">      &quot;description&quot;: &quot;Shared workspace for the analytics team&quot;,</span></span>
+<span id="cb17-9"><a href="#cb17-9" aria-hidden="true" tabindex="-1"></a><span class="st">      &quot;color&quot;: &quot;#54B399&quot;</span></span>
+<span id="cb17-10"><a href="#cb17-10" aria-hidden="true" tabindex="-1"></a><span class="st">    },</span></span>
+<span id="cb17-11"><a href="#cb17-11" aria-hidden="true" tabindex="-1"></a><span class="st">    &quot;settings&quot;: {</span></span>
+<span id="cb17-12"><a href="#cb17-12" aria-hidden="true" tabindex="-1"></a><span class="st">      &quot;dataSources&quot;: [&quot;ds-id-1&quot;]</span></span>
+<span id="cb17-13"><a href="#cb17-13" aria-hidden="true" tabindex="-1"></a><span class="st">    }</span></span>
+<span id="cb17-14"><a href="#cb17-14" aria-hidden="true" tabindex="-1"></a><span class="st">  }&#39;</span></span></code></pre></div>
+<hr />
+<h4 id="put-apiworkspacesid"><code>PUT /api/workspaces/{id}</code></h4>
+<p>Update a workspace.</p>
+<hr />
+<h4
+id="delete-apiworkspacesid"><code>DELETE /api/workspaces/{id}</code></h4>
+<p>Delete a workspace and all associated metadata.</p>
+<hr />
+<h4
+id="post-apiworkspaces_associate"><code>POST /api/workspaces/_associate</code></h4>
+<p>Associate saved objects with a workspace.</p>
+<p><strong>Request Body:</strong></p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>workspaceId</code></td>
+<td>string</td>
+<td>Target workspace ID</td>
+</tr>
+<tr>
+<td><code>savedObjects</code></td>
+<td>array</td>
+<td>Objects to associate <code>[{id, type}]</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h4
+id="post-apiworkspaces_dissociate"><code>POST /api/workspaces/_dissociate</code></h4>
+<p>Remove saved objects from a workspace.</p>
+<p><strong>Request Body:</strong> Same schema as
+<code>_associate</code>.</p>
+<hr />
+<h4
+id="post-apiworkspaces_duplicate_saved_objects"><code>POST /api/workspaces/_duplicate_saved_objects</code></h4>
+<p>Duplicate saved objects from one workspace to another.</p>
+<hr />
+<h2 id="common-patterns">Common Patterns</h2>
+<h3 id="error-responses">Error Responses</h3>
+<p>All API endpoints return errors in a consistent format:</p>
+<div class="sourceCode" id="cb18"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;statusCode&quot;</span><span class="fu">:</span> <span class="dv">400</span><span class="fu">,</span></span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;error&quot;</span><span class="fu">:</span> <span class="st">&quot;Bad Request&quot;</span><span class="fu">,</span></span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;message&quot;</span><span class="fu">:</span> <span class="st">&quot;Detailed error description&quot;</span></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<p>Common HTTP status codes: - <code>400</code> - Bad Request (invalid
+parameters or body) - <code>401</code> - Unauthorized (missing or
+invalid credentials) - <code>403</code> - Forbidden (insufficient
+permissions) - <code>404</code> - Not Found - <code>409</code> -
+Conflict (version mismatch or duplicate) - <code>413</code> - Payload
+Too Large (file upload exceeds limit) - <code>500</code> - Internal
+Server Error</p>
+<h3 id="csrf-protection">CSRF Protection</h3>
+<p>All state-changing requests (POST, PUT, DELETE) must include the
+<code>osd-xsrf</code> header:</p>
+<pre><code>osd-xsrf: true</code></pre>
+<p>Requests without this header will be rejected with a <code>400</code>
+error.</p>
+<h3 id="pagination">Pagination</h3>
+<p>List/find endpoints follow a consistent pagination pattern:</p>
+<div class="sourceCode" id="cb20"><pre
+class="sourceCode json"><code class="sourceCode json"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">{</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;page&quot;</span><span class="fu">:</span> <span class="dv">1</span><span class="fu">,</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;per_page&quot;</span><span class="fu">:</span> <span class="dv">20</span><span class="fu">,</span></span>
+<span id="cb20-4"><a href="#cb20-4" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;total&quot;</span><span class="fu">:</span> <span class="dv">150</span><span class="fu">,</span></span>
+<span id="cb20-5"><a href="#cb20-5" aria-hidden="true" tabindex="-1"></a>  <span class="dt">&quot;saved_objects&quot;</span><span class="fu">:</span> <span class="ot">[</span><span class="er">...</span><span class="ot">]</span></span>
+<span id="cb20-6"><a href="#cb20-6" aria-hidden="true" tabindex="-1"></a><span class="fu">}</span></span></code></pre></div>
+<h3 id="internal-vs-public-apis">Internal vs Public APIs</h3>
+<ul>
+<li><strong><code>/api/</code></strong> - Public APIs intended for
+external consumption. Stable between minor versions.</li>
+<li><strong><code>/internal/</code></strong> - Internal APIs used by
+OSD’s own UI. May change without notice between versions. Do not depend
+on these in external integrations.</li>
+</ul>
+<h3 id="workspace-aware-requests">Workspace-Aware Requests</h3>
+<p>Many endpoints accept workspace context via: - Query parameter:
+<code>?workspaces=workspace-id</code> - Request body field:
+<code>"workspaces": ["workspace-id"]</code></p>
+<p>When workspace isolation is enabled, requests are scoped to the
+specified workspace.</p>
+<h3 id="data-source-aware-requests">Data Source-Aware Requests</h3>
+<p>Endpoints that interact with OpenSearch data often accept a
+<code>dataSource</code> or <code>data_source</code> parameter to target
+a specific remote OpenSearch cluster instead of the local one.</p>

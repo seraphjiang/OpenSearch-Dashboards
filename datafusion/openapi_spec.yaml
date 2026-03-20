@@ -1,0 +1,2388 @@
+openapi: 3.0.3
+info:
+  title: OpenSearch Dashboards API
+  description: |
+    API specification for OpenSearch Dashboards (OSD).
+    This covers core platform APIs (saved objects, UI settings, status, capabilities)
+    and built-in plugin APIs (workspaces, telemetry, console, data sources, etc.).
+  version: 3.0.0
+  license:
+    name: Apache-2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+
+servers:
+  - url: http://localhost:5601
+    description: Local development server
+
+tags:
+  - name: Saved Objects
+    description: Core saved objects CRUD and bulk operations
+  - name: Saved Objects Import/Export
+    description: Import and export saved objects
+  - name: Saved Objects Management
+    description: Management UI endpoints for saved objects
+  - name: UI Settings
+    description: User interface settings (opensearch-dashboards.yml overrides)
+  - name: Status
+    description: Server status and metrics
+  - name: Capabilities
+    description: UI capabilities resolution
+  - name: Workspaces
+    description: Workspace management
+  - name: Telemetry
+    description: Usage telemetry collection and opt-in
+  - name: Short URLs
+    description: URL shortening service
+  - name: Console
+    description: Dev Tools console proxy
+  - name: Application Config
+    description: Application-level configuration
+  - name: Data Sources
+    description: External data source connections
+  - name: Data Importer
+    description: Data import utilities
+  - name: Home
+    description: Home page helpers
+  - name: Index Pattern Management
+    description: Index pattern utilities
+  - name: Legacy Export
+    description: Legacy dashboard import/export (deprecated)
+  - name: Banner
+    description: Banner configuration
+  - name: Usage Collection
+    description: UI metric reporting
+
+paths:
+  # ============================================================
+  # Core: Saved Objects
+  # ============================================================
+  /api/saved_objects/{type}/{id}:
+    get:
+      tags: [Saved Objects]
+      summary: Get a saved object
+      operationId: getSavedObject
+      parameters:
+        - $ref: '#/components/parameters/SavedObjectType'
+        - $ref: '#/components/parameters/SavedObjectId'
+      responses:
+        '200':
+          description: The saved object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedObject'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    put:
+      tags: [Saved Objects]
+      summary: Update a saved object
+      operationId: updateSavedObject
+      parameters:
+        - $ref: '#/components/parameters/SavedObjectType'
+        - $ref: '#/components/parameters/SavedObjectId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [attributes]
+              properties:
+                attributes:
+                  type: object
+                  additionalProperties: true
+                  description: The attributes to update
+                version:
+                  type: string
+                  description: Optimistic concurrency control version
+                references:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/SavedObjectReference'
+      responses:
+        '200':
+          description: Updated saved object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedObject'
+    delete:
+      tags: [Saved Objects]
+      summary: Delete a saved object
+      operationId: deleteSavedObject
+      parameters:
+        - $ref: '#/components/parameters/SavedObjectType'
+        - $ref: '#/components/parameters/SavedObjectId'
+        - name: force
+          in: query
+          schema:
+            type: boolean
+      responses:
+        '200':
+          description: Empty response on success
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/saved_objects/{type}:
+    post:
+      tags: [Saved Objects]
+      summary: Create a saved object (server-generated ID)
+      operationId: createSavedObjectNoId
+      parameters:
+        - $ref: '#/components/parameters/SavedObjectType'
+        - name: overwrite
+          in: query
+          schema:
+            type: boolean
+            default: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSavedObjectBody'
+      responses:
+        '200':
+          description: Created saved object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedObject'
+
+  /api/saved_objects/{type}/{id?}:
+    post:
+      tags: [Saved Objects]
+      summary: Create a saved object with optional ID
+      operationId: createSavedObject
+      parameters:
+        - $ref: '#/components/parameters/SavedObjectType'
+        - name: id
+          in: path
+          required: false
+          schema:
+            type: string
+          description: Optional saved object ID
+        - name: overwrite
+          in: query
+          schema:
+            type: boolean
+            default: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSavedObjectBody'
+      responses:
+        '200':
+          description: Created saved object
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedObject'
+
+  /api/saved_objects/_find:
+    get:
+      tags: [Saved Objects]
+      summary: Find saved objects
+      operationId: findSavedObjects
+      parameters:
+        - name: per_page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 20
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 0
+            default: 1
+        - name: type
+          in: query
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: default_search_operator
+          in: query
+          schema:
+            type: string
+            enum: [OR, AND]
+            default: OR
+        - name: search_fields
+          in: query
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+        - name: sort_field
+          in: query
+          schema:
+            type: string
+        - name: has_reference
+          in: query
+          schema:
+            type: object
+            properties:
+              type:
+                type: string
+              id:
+                type: string
+        - name: fields
+          in: query
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+        - name: filter
+          in: query
+          schema:
+            type: string
+        - name: namespaces
+          in: query
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+        - name: workspaces
+          in: query
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+      responses:
+        '200':
+          description: A paginated list of saved objects
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedObjectsFindResponse'
+
+  /api/saved_objects/_bulk_create:
+    post:
+      tags: [Saved Objects]
+      summary: Bulk create saved objects
+      operationId: bulkCreateSavedObjects
+      parameters:
+        - name: overwrite
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: workspaces
+          in: query
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                required: [type, attributes]
+                properties:
+                  type:
+                    type: string
+                  id:
+                    type: string
+                  attributes:
+                    type: object
+                    additionalProperties: true
+                  version:
+                    type: string
+                  migrationVersion:
+                    type: object
+                    additionalProperties:
+                      type: string
+                  references:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SavedObjectReference'
+                  initialNamespaces:
+                    type: array
+                    items:
+                      type: string
+                    minItems: 1
+      responses:
+        '200':
+          description: Bulk create results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkResponse'
+
+  /api/saved_objects/_bulk_get:
+    post:
+      tags: [Saved Objects]
+      summary: Bulk get saved objects
+      operationId: bulkGetSavedObjects
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                required: [type, id]
+                properties:
+                  type:
+                    type: string
+                  id:
+                    type: string
+                  fields:
+                    type: array
+                    items:
+                      type: string
+      responses:
+        '200':
+          description: Bulk get results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkResponse'
+
+  /api/saved_objects/_bulk_update:
+    put:
+      tags: [Saved Objects]
+      summary: Bulk update saved objects
+      operationId: bulkUpdateSavedObjects
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                required: [type, id, attributes]
+                properties:
+                  type:
+                    type: string
+                  id:
+                    type: string
+                  attributes:
+                    type: object
+                    additionalProperties: true
+                  version:
+                    type: string
+                  references:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/SavedObjectReference'
+                  namespace:
+                    type: string
+                    minLength: 1
+      responses:
+        '200':
+          description: Bulk update results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BulkResponse'
+
+  /api/saved_objects/_log_legacy_import:
+    post:
+      tags: [Saved Objects]
+      summary: Log legacy import (deprecated)
+      operationId: logLegacyImport
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+
+  # ============================================================
+  # Core: Saved Objects Import/Export
+  # ============================================================
+  /api/saved_objects/_export:
+    post:
+      tags: [Saved Objects Import/Export]
+      summary: Export saved objects
+      operationId: exportSavedObjects
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                type:
+                  oneOf:
+                    - type: string
+                    - type: array
+                      items:
+                        type: string
+                objects:
+                  type: array
+                  items:
+                    type: object
+                    required: [type, id]
+                    properties:
+                      type:
+                        type: string
+                      id:
+                        type: string
+                search:
+                  type: string
+                includeReferencesDeep:
+                  type: boolean
+                  default: false
+                excludeExportDetails:
+                  type: boolean
+                  default: false
+                workspaces:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: NDJSON stream of exported objects
+          content:
+            application/ndjson:
+              schema:
+                type: string
+
+  /api/saved_objects/_import:
+    post:
+      tags: [Saved Objects Import/Export]
+      summary: Import saved objects from NDJSON file
+      operationId: importSavedObjects
+      parameters:
+        - name: overwrite
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: createNewCopies
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: dataSourceId
+          in: query
+          schema:
+            type: string
+        - name: workspaces
+          in: query
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+        - name: dataSourceEnabled
+          in: query
+          schema:
+            type: boolean
+            default: false
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: NDJSON file to import
+      responses:
+        '200':
+          description: Import results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportResponse'
+        '400':
+          description: Invalid file extension or validation error
+
+  /api/saved_objects/_resolve_import_errors:
+    post:
+      tags: [Saved Objects Import/Export]
+      summary: Resolve import errors with retries
+      operationId: resolveImportErrors
+      parameters:
+        - name: createNewCopies
+          in: query
+          schema:
+            type: boolean
+            default: false
+        - name: dataSourceId
+          in: query
+          schema:
+            type: string
+        - name: workspaces
+          in: query
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, retries]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                retries:
+                  type: array
+                  items:
+                    type: object
+                    required: [type, id]
+                    properties:
+                      type:
+                        type: string
+                      id:
+                        type: string
+                      overwrite:
+                        type: boolean
+                        default: false
+                      destinationId:
+                        type: string
+                      replaceReferences:
+                        type: array
+                        items:
+                          type: object
+                          required: [type, from, to]
+                          properties:
+                            type:
+                              type: string
+                            from:
+                              type: string
+                            to:
+                              type: string
+                      createNewCopy:
+                        type: boolean
+                      ignoreMissingReferences:
+                        type: boolean
+      responses:
+        '200':
+          description: Resolve results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportResponse'
+
+  # ============================================================
+  # Internal: Saved Objects Migration
+  # ============================================================
+  /internal/saved_objects/_migrate:
+    post:
+      tags: [Saved Objects]
+      summary: Run saved object migrations
+      operationId: migrateSavedObjects
+      security:
+        - osdAuth: []
+      responses:
+        '200':
+          description: Migration completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+
+  # ============================================================
+  # Core: UI Settings
+  # ============================================================
+  /api/opensearch-dashboards/settings:
+    get:
+      tags: [UI Settings]
+      summary: Get all UI settings
+      operationId: getUiSettings
+      parameters:
+        - $ref: '#/components/parameters/UiSettingScope'
+      responses:
+        '200':
+          description: Current UI settings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  settings:
+                    type: object
+                    additionalProperties: true
+    post:
+      tags: [UI Settings]
+      summary: Set multiple UI settings
+      operationId: setManyUiSettings
+      parameters:
+        - name: scope
+          in: query
+          schema:
+            type: string
+            enum: [global, user, workspace, dashboard_admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [changes]
+              properties:
+                changes:
+                  type: object
+                  additionalProperties: true
+                  description: Key-value pairs of settings to change
+      responses:
+        '200':
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  settings:
+                    type: object
+                    additionalProperties: true
+
+  /api/opensearch-dashboards/settings/{key}:
+    post:
+      tags: [UI Settings]
+      summary: Set a single UI setting
+      operationId: setUiSetting
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: scope
+          in: query
+          schema:
+            type: string
+            enum: [global, user]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [value]
+              properties:
+                value: {}
+      responses:
+        '200':
+          description: Updated settings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  settings:
+                    type: object
+                    additionalProperties: true
+    delete:
+      tags: [UI Settings]
+      summary: Delete a UI setting (reset to default)
+      operationId: deleteUiSetting
+      parameters:
+        - name: key
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: scope
+          in: query
+          schema:
+            type: string
+            enum: [global, user]
+      responses:
+        '200':
+          description: Updated settings after deletion
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  settings:
+                    type: object
+                    additionalProperties: true
+
+  # ============================================================
+  # Core: Status
+  # ============================================================
+  /api/status:
+    get:
+      tags: [Status]
+      summary: Get server status and metrics
+      operationId: getStatus
+      parameters:
+        - name: v8format
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Use v8 status format instead of legacy
+      responses:
+        '200':
+          description: Server status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusResponse'
+
+  # ============================================================
+  # Core: Capabilities
+  # ============================================================
+  /api/core/capabilities:
+    post:
+      tags: [Capabilities]
+      summary: Resolve UI capabilities for given applications
+      operationId: resolveCapabilities
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [applications]
+              properties:
+                applications:
+                  type: array
+                  items:
+                    type: string
+                  description: List of application IDs to resolve capabilities for
+      responses:
+        '200':
+          description: Resolved capabilities object
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+
+  # ============================================================
+  # Plugin: Workspaces
+  # ============================================================
+  /api/workspaces/_list:
+    post:
+      tags: [Workspaces]
+      summary: List workspaces
+      operationId: listWorkspaces
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                search:
+                  type: string
+                sortOrder:
+                  type: string
+                perPage:
+                  type: integer
+                  minimum: 0
+                  default: 20
+                page:
+                  type: integer
+                  minimum: 0
+                  default: 1
+                sortField:
+                  type: string
+                searchFields:
+                  type: array
+                  items:
+                    type: string
+                permissionModes:
+                  type: array
+                  items:
+                    type: string
+                    enum: [read, write, library_read, library_write]
+      responses:
+        '200':
+          description: List of workspaces
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceListResponse'
+
+  /api/workspaces/{id}:
+    get:
+      tags: [Workspaces]
+      summary: Get a workspace by ID
+      operationId: getWorkspace
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Workspace details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceResponse'
+
+  /api/workspaces:
+    post:
+      tags: [Workspaces]
+      summary: Create a workspace
+      operationId: createWorkspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [attributes, settings]
+              properties:
+                attributes:
+                  $ref: '#/components/schemas/CreateWorkspaceAttributes'
+                settings:
+                  $ref: '#/components/schemas/WorkspaceSettings'
+      responses:
+        '200':
+          description: Created workspace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceResponse'
+
+  /api/workspaces/{id?}:
+    put:
+      tags: [Workspaces]
+      summary: Update a workspace
+      operationId: updateWorkspace
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [attributes, settings]
+              properties:
+                attributes:
+                  $ref: '#/components/schemas/UpdateWorkspaceAttributes'
+                settings:
+                  $ref: '#/components/schemas/WorkspaceSettings'
+      responses:
+        '200':
+          description: Updated workspace
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceResponse'
+    delete:
+      tags: [Workspaces]
+      summary: Delete a workspace
+      operationId: deleteWorkspace
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deletion result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceResponse'
+
+  /api/workspaces/_associate:
+    post:
+      tags: [Workspaces]
+      summary: Associate saved objects with a workspace
+      operationId: associateWorkspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [workspaceId, savedObjects]
+              properties:
+                workspaceId:
+                  type: string
+                savedObjects:
+                  type: array
+                  items:
+                    type: object
+                    required: [id, type]
+                    properties:
+                      id:
+                        type: string
+                      type:
+                        type: string
+      responses:
+        '200':
+          description: Association result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceResponse'
+
+  /api/workspaces/_dissociate:
+    post:
+      tags: [Workspaces]
+      summary: Dissociate saved objects from a workspace
+      operationId: dissociateWorkspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [workspaceId, savedObjects]
+              properties:
+                workspaceId:
+                  type: string
+                savedObjects:
+                  type: array
+                  items:
+                    type: object
+                    required: [id, type]
+                    properties:
+                      id:
+                        type: string
+                      type:
+                        type: string
+      responses:
+        '200':
+          description: Dissociation result
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceResponse'
+
+  /api/workspaces/_duplicate_saved_objects:
+    post:
+      tags: [Workspaces]
+      summary: Duplicate saved objects to another workspace
+      operationId: duplicateSavedObjects
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [objects, targetWorkspace]
+              properties:
+                objects:
+                  type: array
+                  items:
+                    type: object
+                    required: [type, id]
+                    properties:
+                      type:
+                        type: string
+                      id:
+                        type: string
+                includeReferencesDeep:
+                  type: boolean
+                  default: true
+                targetWorkspace:
+                  type: string
+      responses:
+        '200':
+          description: Import result for duplicated objects
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImportResponse'
+
+  # ============================================================
+  # Plugin: Telemetry
+  # ============================================================
+  /api/telemetry/v2/optIn:
+    post:
+      tags: [Telemetry]
+      summary: Opt in or out of telemetry
+      operationId: telemetryOptIn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled:
+                  type: boolean
+      responses:
+        '200':
+          description: Opt-in status stats
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+        '403':
+          description: Forbidden
+
+  /api/telemetry/v2/clusters/_stats:
+    post:
+      tags: [Telemetry]
+      summary: Get telemetry usage stats
+      operationId: telemetryUsageStats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [timeRange]
+              properties:
+                unencrypted:
+                  type: boolean
+                  default: false
+                timeRange:
+                  type: object
+                  required: [min, max]
+                  properties:
+                    min:
+                      oneOf:
+                        - type: string
+                        - type: number
+                      description: ISO-8601 date string or epoch
+                    max:
+                      oneOf:
+                        - type: string
+                        - type: number
+                      description: ISO-8601 date string or epoch
+      responses:
+        '200':
+          description: Cluster stats
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  /api/telemetry/v2/clusters/_opt_in_stats:
+    post:
+      tags: [Telemetry]
+      summary: Get opt-in statistics
+      operationId: telemetryOptInStats
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [enabled]
+              properties:
+                enabled:
+                  type: boolean
+                unencrypted:
+                  type: boolean
+                  default: true
+      responses:
+        '200':
+          description: Opt-in stats
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  /api/telemetry/v2/userHasSeenNotice:
+    put:
+      tags: [Telemetry]
+      summary: Mark telemetry notice as seen
+      operationId: telemetryUserHasSeenNotice
+      responses:
+        '200':
+          description: Updated telemetry saved object
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  userHasSeenNotice:
+                    type: boolean
+                    example: true
+
+  # ============================================================
+  # Plugin: Short URLs
+  # ============================================================
+  /api/shorten_url:
+    post:
+      tags: [Short URLs]
+      summary: Create a shortened URL
+      operationId: shortenUrl
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [url]
+              properties:
+                url:
+                  type: string
+                  description: The URL path to shorten
+      responses:
+        '200':
+          description: Short URL ID
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  urlId:
+                    type: string
+
+  /api/short_url/{urlId}:
+    get:
+      tags: [Short URLs]
+      summary: Resolve a short URL ID to its full URL
+      operationId: getShortUrl
+      parameters:
+        - name: urlId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The resolved URL
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  url:
+                    type: string
+
+  /goto/{urlId}:
+    get:
+      tags: [Short URLs]
+      summary: Redirect to the full URL (browser resource route)
+      operationId: gotoShortUrl
+      parameters:
+        - name: urlId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '302':
+          description: Redirect to the resolved URL
+          headers:
+            Location:
+              schema:
+                type: string
+        '200':
+          description: Core app render (when state is stored in session storage)
+
+  # ============================================================
+  # Plugin: Application Config
+  # ============================================================
+  /api/appconfig:
+    get:
+      tags: [Application Config]
+      summary: Get all application configuration
+      operationId: getAppConfig
+      responses:
+        '200':
+          description: All configuration values
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  value:
+                    type: object
+                    additionalProperties: true
+
+  /api/appconfig/{entity}:
+    get:
+      tags: [Application Config]
+      summary: Get a single configuration entity
+      operationId: getAppConfigEntity
+      parameters:
+        - name: entity
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Entity configuration value
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  value:
+                    type: string
+    post:
+      tags: [Application Config]
+      summary: Update a configuration entity
+      operationId: updateAppConfigEntity
+      parameters:
+        - name: entity
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [newValue]
+              properties:
+                newValue:
+                  type: string
+      responses:
+        '200':
+          description: Updated entity value
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  newValue:
+                    type: string
+    delete:
+      tags: [Application Config]
+      summary: Delete a configuration entity
+      operationId: deleteAppConfigEntity
+      parameters:
+        - name: entity
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted entity name
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  deletedEntity:
+                    type: string
+
+  # ============================================================
+  # Plugin: Home
+  # ============================================================
+  /api/home/hits_status:
+    post:
+      tags: [Home]
+      summary: Check if an index has data
+      operationId: homeHitsStatus
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [index, query]
+              properties:
+                index:
+                  type: string
+                  description: Index pattern to search
+                query:
+                  type: object
+                  additionalProperties: true
+                  description: OpenSearch query DSL
+      responses:
+        '200':
+          description: Hit count
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: integer
+
+  # ============================================================
+  # Plugin: Banner
+  # ============================================================
+  /api/_plugins/_banner/content:
+    get:
+      tags: [Banner]
+      summary: Get banner configuration
+      operationId: getBannerContent
+      responses:
+        '200':
+          description: Banner settings
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: string
+                  color:
+                    type: string
+                  iconType:
+                    type: string
+                  isVisible:
+                    type: boolean
+                  useMarkdown:
+                    type: boolean
+                  size:
+                    type: string
+
+  # ============================================================
+  # Plugin: Data Importer
+  # ============================================================
+  /api/data_importer/_cat_indices:
+    get:
+      tags: [Data Importer]
+      summary: List non-system indices
+      operationId: catIndices
+      parameters:
+        - name: dataSource
+          in: query
+          schema:
+            type: string
+          description: Optional data source ID
+      responses:
+        '200':
+          description: List of index names
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  indices:
+                    type: array
+                    items:
+                      type: string
+
+  # ============================================================
+  # Plugin: Usage Collection
+  # ============================================================
+  /api/ui_metric/report:
+    post:
+      tags: [Usage Collection]
+      summary: Report UI metrics
+      operationId: reportUiMetric
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [report]
+              properties:
+                report:
+                  type: object
+                  description: UI metrics report
+                  additionalProperties: true
+      responses:
+        '200':
+          description: Report status
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [ok, fail]
+
+  # ============================================================
+  # Plugin: Saved Objects Management
+  # ============================================================
+  /api/opensearch-dashboards/management/saved_objects/_find:
+    get:
+      tags: [Saved Objects Management]
+      summary: Find saved objects (management UI)
+      operationId: managementFindSavedObjects
+      parameters:
+        - name: perPage
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: type
+          in: query
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+        - name: namespaces
+          in: query
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: defaultSearchOperator
+          in: query
+          schema:
+            type: string
+            enum: [OR, AND]
+            default: OR
+        - name: sortField
+          in: query
+          schema:
+            type: string
+        - name: sortOrder
+          in: query
+          schema:
+            type: string
+        - name: hasReference
+          in: query
+          schema:
+            type: object
+            properties:
+              type:
+                type: string
+              id:
+                type: string
+        - name: fields
+          in: query
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+        - name: workspaces
+          in: query
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+      responses:
+        '200':
+          description: Paginated saved objects with meta attributes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedObjectsFindResponse'
+
+  /api/opensearch-dashboards/management/saved_objects/{type}/{id}:
+    get:
+      tags: [Saved Objects Management]
+      summary: Get a saved object with meta attributes
+      operationId: managementGetSavedObject
+      parameters:
+        - $ref: '#/components/parameters/SavedObjectType'
+        - $ref: '#/components/parameters/SavedObjectId'
+      responses:
+        '200':
+          description: Saved object with injected meta attributes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedObject'
+
+  /api/opensearch-dashboards/management/saved_objects/_allowed_types:
+    get:
+      tags: [Saved Objects Management]
+      summary: Get importable/exportable saved object types
+      operationId: getAllowedTypes
+      responses:
+        '200':
+          description: List of allowed types
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  types:
+                    type: array
+                    items:
+                      type: string
+
+  /api/opensearch-dashboards/management/saved_objects/relationships/{type}/{id}:
+    get:
+      tags: [Saved Objects Management]
+      summary: Get relationships for a saved object
+      operationId: getRelationships
+      parameters:
+        - $ref: '#/components/parameters/SavedObjectType'
+        - $ref: '#/components/parameters/SavedObjectId'
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 10000
+        - name: savedObjectTypes
+          in: query
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+      responses:
+        '200':
+          description: Relationship data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+
+  /api/opensearch-dashboards/management/saved_objects/scroll/counts:
+    post:
+      tags: [Saved Objects Management]
+      summary: Get counts of saved objects by type
+      operationId: scrollForCount
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [typesToInclude]
+              properties:
+                typesToInclude:
+                  type: array
+                  items:
+                    type: string
+                namespacesToInclude:
+                  type: array
+                  items:
+                    type: string
+                searchString:
+                  type: string
+                workspaces:
+                  type: array
+                  items:
+                    type: string
+                availableWorkspaces:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Count data by type, namespace, and workspace
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  type:
+                    type: object
+                    additionalProperties:
+                      type: integer
+                  namespaces:
+                    type: object
+                    additionalProperties:
+                      type: integer
+                  workspaces:
+                    type: object
+                    additionalProperties:
+                      type: integer
+
+  /api/opensearch-dashboards/management/saved_objects/scroll/export:
+    post:
+      tags: [Saved Objects Management]
+      summary: Export all saved objects of given types
+      operationId: scrollForExport
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [typesToInclude]
+              properties:
+                typesToInclude:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Array of saved objects in legacy format
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    _id:
+                      type: string
+                    _type:
+                      type: string
+                    _source:
+                      type: object
+                    _meta:
+                      type: object
+                      properties:
+                        savedObjectVersion:
+                          type: integer
+                    _migrationVersion:
+                      type: object
+                    _references:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/SavedObjectReference'
+
+  # ============================================================
+  # Plugin: Legacy Dashboard Export/Import (deprecated)
+  # ============================================================
+  /api/opensearch-dashboards/dashboards/export:
+    get:
+      tags: [Legacy Export]
+      summary: Export dashboards (deprecated)
+      operationId: legacyExportDashboards
+      parameters:
+        - name: dashboard
+          in: query
+          required: true
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+          description: Dashboard ID(s) to export
+      responses:
+        '200':
+          description: Exported dashboard JSON
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/opensearch-dashboards/dashboards/import:
+    post:
+      tags: [Legacy Export]
+      summary: Import dashboards (deprecated)
+      operationId: legacyImportDashboards
+      parameters:
+        - name: force
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Overwrite existing objects
+        - name: exclude
+          in: query
+          schema:
+            oneOf:
+              - type: string
+              - type: array
+                items:
+                  type: string
+          description: Types to exclude from import
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [objects]
+              properties:
+                objects:
+                  type: array
+                  items:
+                    type: object
+                    additionalProperties: true
+                version:
+                  type: string
+      responses:
+        '200':
+          description: Import result
+          content:
+            application/json:
+              schema:
+                type: object
+
+  # ============================================================
+  # Plugin: Index Pattern Management (Internal)
+  # ============================================================
+  /internal/index-pattern-management/preview_scripted_field:
+    post:
+      tags: [Index Pattern Management]
+      summary: Preview a scripted field
+      operationId: previewScriptedField
+      parameters:
+        - name: dataSourceId
+          in: query
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [index, name, script]
+              properties:
+                index:
+                  type: string
+                name:
+                  type: string
+                script:
+                  type: string
+                query:
+                  type: object
+                  additionalProperties: true
+                additionalFields:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Search results with scripted field
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /internal/index-pattern-management/resolve_index/{query}:
+    get:
+      tags: [Index Pattern Management]
+      summary: Resolve index names matching a pattern
+      operationId: resolveIndex
+      parameters:
+        - name: query
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: expand_wildcards
+          in: query
+          schema:
+            type: string
+            enum: [all, open, closed, hidden, none]
+        - name: data_source
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Resolved indices, aliases, and data streams
+          content:
+            application/json:
+              schema:
+                type: object
+
+  # ============================================================
+  # Plugin: Data Source (Internal)
+  # ============================================================
+  /internal/data-source-management/validate:
+    post:
+      tags: [Data Sources]
+      summary: Test connection to a data source
+      operationId: testDataSourceConnection
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                  description: Existing data source ID (optional for new connections)
+                dataSourceAttr:
+                  type: object
+                  required: [endpoint]
+                  properties:
+                    endpoint:
+                      type: string
+                    auth:
+                      $ref: '#/components/schemas/DataSourceAuth'
+      responses:
+        '200':
+          description: Connection successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '400':
+          description: Endpoint validation failed
+        '500':
+          description: Connection failed
+
+  /internal/data-source-management/fetchDataSourceMetaData:
+    post:
+      tags: [Data Sources]
+      summary: Fetch metadata from a data source
+      operationId: fetchDataSourceMetaData
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                dataSourceAttr:
+                  type: object
+                  required: [endpoint]
+                  properties:
+                    endpoint:
+                      type: string
+                    auth:
+                      $ref: '#/components/schemas/DataSourceAuth'
+      responses:
+        '200':
+          description: Data source metadata
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  dataSourceVersion:
+                    type: string
+                  dataSourceEngineType:
+                    type: string
+                  installedPlugins:
+                    type: array
+                    items:
+                      type: string
+
+  # ============================================================
+  # Plugin: Console
+  # ============================================================
+  /api/console/opensearch_config:
+    get:
+      tags: [Console]
+      summary: Get OpenSearch configuration for console
+      operationId: getConsoleOpenSearchConfig
+      responses:
+        '200':
+          description: OpenSearch config
+          content:
+            application/json:
+              schema:
+                type: object
+
+  /api/console/proxy:
+    post:
+      tags: [Console]
+      summary: Proxy requests to OpenSearch
+      operationId: consoleProxy
+      description: |
+        Proxies requests from the Dev Tools console to OpenSearch.
+        Accepts the OpenSearch path and method as query parameters.
+      parameters:
+        - name: path
+          in: query
+          required: true
+          schema:
+            type: string
+          description: OpenSearch API path
+        - name: method
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [GET, POST, PUT, DELETE, HEAD, PATCH]
+      responses:
+        '200':
+          description: Proxied OpenSearch response
+
+  /api/console/api_server:
+    get:
+      tags: [Console]
+      summary: Get console spec definitions
+      operationId: getConsoleSpecDefinitions
+      responses:
+        '200':
+          description: Console API spec definitions
+          content:
+            application/json:
+              schema:
+                type: object
+
+components:
+  securitySchemes:
+    osdAuth:
+      type: http
+      scheme: basic
+      description: OpenSearch Dashboards authentication (when security plugin is enabled)
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sid
+      description: Session cookie authentication
+
+  parameters:
+    SavedObjectType:
+      name: type
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Saved object type (e.g., dashboard, visualization, index-pattern)
+    SavedObjectId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: Saved object ID
+    UiSettingScope:
+      name: scope
+      in: query
+      schema:
+        type: string
+        enum: [global, user, workspace]
+
+  schemas:
+    SavedObjectReference:
+      type: object
+      required: [name, type, id]
+      properties:
+        name:
+          type: string
+        type:
+          type: string
+        id:
+          type: string
+
+    SavedObject:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+        version:
+          type: string
+        attributes:
+          type: object
+          additionalProperties: true
+        references:
+          type: array
+          items:
+            $ref: '#/components/schemas/SavedObjectReference'
+        migrationVersion:
+          type: object
+          additionalProperties:
+            type: string
+        namespaces:
+          type: array
+          items:
+            type: string
+        workspaces:
+          type: array
+          items:
+            type: string
+        updated_at:
+          type: string
+          format: date-time
+        error:
+          type: object
+          properties:
+            statusCode:
+              type: integer
+            message:
+              type: string
+
+    CreateSavedObjectBody:
+      type: object
+      required: [attributes]
+      properties:
+        attributes:
+          type: object
+          additionalProperties: true
+        migrationVersion:
+          type: object
+          additionalProperties:
+            type: string
+        references:
+          type: array
+          items:
+            $ref: '#/components/schemas/SavedObjectReference'
+        initialNamespaces:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        workspaces:
+          type: array
+          items:
+            type: string
+          minItems: 1
+
+    SavedObjectsFindResponse:
+      type: object
+      properties:
+        saved_objects:
+          type: array
+          items:
+            $ref: '#/components/schemas/SavedObject'
+        total:
+          type: integer
+        per_page:
+          type: integer
+        page:
+          type: integer
+
+    BulkResponse:
+      type: object
+      properties:
+        saved_objects:
+          type: array
+          items:
+            $ref: '#/components/schemas/SavedObject'
+
+    ImportResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        successCount:
+          type: integer
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              type:
+                type: string
+              error:
+                type: object
+
+    StatusResponse:
+      type: object
+      properties:
+        name:
+          type: string
+        uuid:
+          type: string
+        version:
+          type: object
+          properties:
+            number:
+              type: string
+            build_hash:
+              type: string
+            build_number:
+              type: integer
+            build_snapshot:
+              type: boolean
+        status:
+          type: object
+          description: Overall, core, and plugin status information
+        metrics:
+          type: object
+          properties:
+            last_updated:
+              type: string
+              format: date-time
+            collection_interval_in_millis:
+              type: integer
+            process:
+              type: object
+              properties:
+                memory:
+                  type: object
+                  properties:
+                    heap:
+                      type: object
+                      properties:
+                        total_in_bytes:
+                          type: integer
+                        used_in_bytes:
+                          type: integer
+                        size_limit:
+                          type: integer
+                    resident_set_size_in_bytes:
+                      type: integer
+                event_loop_delay:
+                  type: number
+                pid:
+                  type: integer
+                uptime_in_millis:
+                  type: integer
+            os:
+              type: object
+              properties:
+                load:
+                  type: object
+                  additionalProperties:
+                    type: number
+                memory:
+                  type: object
+                  properties:
+                    total_in_bytes:
+                      type: integer
+                    used_in_bytes:
+                      type: integer
+                    free_in_bytes:
+                      type: integer
+                uptime_in_millis:
+                  type: integer
+            response_times:
+              type: object
+              properties:
+                max_in_millis:
+                  type: number
+            requests:
+              type: object
+              properties:
+                total:
+                  type: integer
+                disconnects:
+                  type: integer
+                status_codes:
+                  type: object
+                  additionalProperties:
+                    type: integer
+            concurrent_connections:
+              type: integer
+
+    WorkspaceListResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        result:
+          type: object
+          properties:
+            workspaces:
+              type: array
+              items:
+                $ref: '#/components/schemas/Workspace'
+            total:
+              type: integer
+
+    WorkspaceResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        result:
+          $ref: '#/components/schemas/Workspace'
+
+    Workspace:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        color:
+          type: string
+        icon:
+          type: string
+        features:
+          type: array
+          items:
+            type: string
+        reserved:
+          type: boolean
+        permissions:
+          type: object
+          additionalProperties: true
+        permissionMode:
+          type: string
+
+    CreateWorkspaceAttributes:
+      type: object
+      required: [name, features]
+      properties:
+        name:
+          type: string
+          maxLength: 40
+        features:
+          type: array
+          items:
+            type: string
+          minItems: 1
+          description: Must include exactly one use case
+        description:
+          type: string
+          maxLength: 200
+        color:
+          type: string
+        icon:
+          type: string
+        defaultVISTheme:
+          type: string
+        reserved:
+          type: boolean
+
+    UpdateWorkspaceAttributes:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 40
+        features:
+          type: array
+          items:
+            type: string
+          minItems: 1
+        description:
+          type: string
+          maxLength: 200
+        color:
+          type: string
+        icon:
+          type: string
+        defaultVISTheme:
+          type: string
+        reserved:
+          type: boolean
+
+    WorkspaceSettings:
+      type: object
+      properties:
+        permissions:
+          type: object
+          additionalProperties: true
+          description: Permission mode to principal type mapping
+        dataSources:
+          type: array
+          items:
+            type: string
+        dataConnections:
+          type: array
+          items:
+            type: string
+
+    DataSourceAuth:
+      oneOf:
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [no_auth]
+            credentials:
+              type: object
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [username_password]
+            credentials:
+              type: object
+              required: [username, password]
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+        - type: object
+          properties:
+            type:
+              type: string
+              enum: [sigv4]
+            credentials:
+              type: object
+              required: [region, accessKey, secretKey, service]
+              properties:
+                region:
+                  type: string
+                accessKey:
+                  type: string
+                secretKey:
+                  type: string
+                service:
+                  type: string
+                  enum: [es, aoss]
+
+  responses:
+    NotFound:
+      description: Saved object not found
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              statusCode:
+                type: integer
+                example: 404
+              error:
+                type: string
+                example: Not Found
+              message:
+                type: string
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              statusCode:
+                type: integer
+                example: 400
+              error:
+                type: string
+                example: Bad Request
+              message:
+                type: string

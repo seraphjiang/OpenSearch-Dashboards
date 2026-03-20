@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSD API Documentation - Web View</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f5f5f5;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .nav {
+            background: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 1rem;
+            z-index: 100;
+        }
+
+        .nav h2 {
+            font-size: 1.2rem;
+            margin-bottom: 1rem;
+            color: #667eea;
+        }
+
+        .nav ul {
+            list-style: none;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.5rem;
+        }
+
+        .nav a {
+            color: #667eea;
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            display: block;
+            border-radius: 4px;
+            transition: all 0.3s;
+        }
+
+        .nav a:hover {
+            background: #667eea;
+            color: white;
+        }
+
+        .card {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 1rem;
+            font-size: 1.8rem;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 0.5rem;
+        }
+
+        .card h3 {
+            color: #764ba2;
+            margin-top: 1.5rem;
+            margin-bottom: 0.5rem;
+            font-size: 1.3rem;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-right: 0.5rem;
+        }
+
+        .badge-get { background: #61affe; color: white; }
+        .badge-post { background: #49cc90; color: white; }
+        .badge-put { background: #fca130; color: white; }
+        .badge-delete { background: #f93e3e; color: white; }
+        .badge-patch { background: #50e3c2; color: white; }
+
+        .endpoint {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 4px;
+            margin: 1rem 0;
+            border-left: 4px solid #667eea;
+        }
+
+        .endpoint code {
+            background: #e9ecef;
+            padding: 0.2rem 0.5rem;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .stat-card h3 {
+            color: #667eea;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-card p {
+            color: #666;
+        }
+
+        iframe {
+            width: 100%;
+            height: 800px;
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 0.75rem 1.5rem;
+            background: #667eea;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: all 0.3s;
+            margin-right: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: #666;
+            margin-top: 3rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="container">
+            <h1>🚀 OpenSearch Dashboards API Documentation</h1>
+            <p>Comprehensive API reference generated by osd-dev agent team</p>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="stats">
+            <div class="stat-card">
+                <h3>120+</h3>
+                <p>API Endpoints</p>
+            </div>
+            <div class="stat-card">
+                <h3>38</h3>
+                <p>OpenSearch APIs</p>
+            </div>
+            <div class="stat-card">
+                <h3>28</h3>
+                <p>Plugins Analyzed</p>
+            </div>
+            <div class="stat-card">
+                <h3>250+</h3>
+                <p>Files Scanned</p>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📚 Documentation Views</h2>
+            <p style="margin-bottom: 1rem;">Choose your preferred documentation format:</p>
+
+            <a href="swagger-ui.html" class="btn" target="_blank">🔷 Interactive Swagger UI</a>
+            <a href="swagger-api-doc.html" class="btn" target="_blank">📖 ReDoc Documentation</a>
+            <a href="API_DOCUMENTATION.pdf" class="btn" target="_blank">📄 PDF Download</a>
+            <a href="API_DOCUMENTATION.docx" class="btn" target="_blank">📝 Word Document</a>
+        </div>
+
+        <div class="nav">
+            <h2>🔍 Quick Navigation</h2>
+            <ul>
+                <li><a href="#overview">Overview</a></li>
+                <li><a href="#core-apis">Core APIs</a></li>
+                <li><a href="#plugin-apis">Plugin APIs</a></li>
+                <li><a href="#opensearch-mapping">OpenSearch Mapping</a></li>
+                <li><a href="#swagger-ui">Interactive API Explorer</a></li>
+            </ul>
+        </div>
+
+        <div id="overview" class="card">
+            <h2>📋 Overview</h2>
+            <p>This comprehensive API documentation covers all OpenSearch Dashboards (OSD) REST APIs. The documentation was automatically generated by scanning the entire OSD codebase and analyzing API routes, request/response schemas, and OpenSearch client usage.</p>
+
+            <h3>What's Included</h3>
+            <ul style="margin-left: 2rem; margin-top: 1rem;">
+                <li><strong>API Routes:</strong> All HTTP endpoints with methods, paths, and parameters</li>
+                <li><strong>Request/Response Schemas:</strong> Detailed data structures for all endpoints</li>
+                <li><strong>OpenSearch API Mapping:</strong> Which OpenSearch APIs each OSD endpoint uses</li>
+                <li><strong>Authentication:</strong> Security requirements and patterns</li>
+                <li><strong>Usage Examples:</strong> Code samples for common operations</li>
+            </ul>
+        </div>
+
+        <div id="core-apis" class="card">
+            <h2>🔧 Core APIs</h2>
+
+            <div class="endpoint">
+                <span class="badge badge-get">GET</span>
+                <span class="badge badge-post">POST</span>
+                <span class="badge badge-put">PUT</span>
+                <span class="badge badge-delete">DELETE</span>
+                <h3>Saved Objects API</h3>
+                <code>/api/saved_objects/*</code>
+                <p style="margin-top: 0.5rem;">Complete CRUD operations, bulk operations, import/export, and migration support for all saved object types.</p>
+            </div>
+
+            <div class="endpoint">
+                <span class="badge badge-get">GET</span>
+                <span class="badge badge-post">POST</span>
+                <span class="badge badge-delete">DELETE</span>
+                <h3>UI Settings API</h3>
+                <code>/api/opensearch-dashboards/settings</code>
+                <p style="margin-top: 0.5rem;">Manage user preferences and dashboard configuration settings.</p>
+            </div>
+
+            <div class="endpoint">
+                <span class="badge badge-get">GET</span>
+                <h3>Status API</h3>
+                <code>/api/status</code>
+                <p style="margin-top: 0.5rem;">Health checks, metrics, and server status information.</p>
+            </div>
+
+            <div class="endpoint">
+                <span class="badge badge-post">POST</span>
+                <h3>Capabilities API</h3>
+                <code>/api/core/capabilities</code>
+                <p style="margin-top: 0.5rem;">Resolve UI capabilities and feature flags based on user permissions.</p>
+            </div>
+        </div>
+
+        <div id="plugin-apis" class="card">
+            <h2>🔌 Plugin APIs</h2>
+            <p>OSD provides rich plugin APIs for extending functionality:</p>
+
+            <ul style="margin-left: 2rem; margin-top: 1rem; line-height: 2;">
+                <li><strong>Workspaces:</strong> Multi-tenancy and workspace management</li>
+                <li><strong>Data Source Management:</strong> Connect to multiple OpenSearch clusters</li>
+                <li><strong>Query Enhancements:</strong> Advanced search capabilities (PPL, SQL)</li>
+                <li><strong>Application Config:</strong> Dynamic configuration management</li>
+                <li><strong>Console:</strong> Interactive OpenSearch query console</li>
+                <li><strong>Telemetry:</strong> Usage analytics and metrics</li>
+                <li><strong>Chat/ML:</strong> AI-powered interactions via AG-UI</li>
+                <li><strong>Data Importer:</strong> Import data from various sources</li>
+                <li><strong>Visualizations:</strong> Timeline, TSVB, Region Maps</li>
+            </ul>
+        </div>
+
+        <div id="opensearch-mapping" class="card">
+            <h2>🗺️ OpenSearch API Mapping</h2>
+            <p>OSD uses 38 unique OpenSearch APIs. Key mappings:</p>
+
+            <h3>Document APIs (14)</h3>
+            <p style="margin-left: 1rem;">search, index, bulk, mget, update, delete, reindex, updateByQuery, deleteByQuery, get, create, exists, scroll, clearScroll</p>
+
+            <h3>Index APIs (12)</h3>
+            <p style="margin-left: 1rem;">indices.create, delete, get, exists, getAlias, updateAliases, putSettings, refresh, getMapping, putMapping, stats, getSettings</p>
+
+            <h3>Cluster & Node APIs (4)</h3>
+            <p style="margin-left: 1rem;">cluster.state, getSettings, stats; nodes.info, usage</p>
+
+            <h3>Other APIs (8)</h3>
+            <p style="margin-left: 1rem;">cat.indices, cat.plugins, tasks.get, count, info, transport.request (ML/PPL)</p>
+
+            <p style="margin-top: 1rem;"><a href="OSD_TO_OPENSEARCH_API_MAPPING.pdf" class="btn">📥 Download Full Mapping (PDF)</a></p>
+        </div>
+
+        <div id="swagger-ui" class="card">
+            <h2>🔷 Interactive API Explorer</h2>
+            <p style="margin-bottom: 1rem;">Try out the APIs directly in your browser:</p>
+            <iframe src="swagger-ui.html" title="Swagger UI API Explorer"></iframe>
+        </div>
+
+        <div class="card">
+            <h2>📦 Download All Documentation</h2>
+            <p style="margin-bottom: 1rem;">Get the complete documentation package:</p>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                <div>
+                    <h3 style="color: #667eea; margin-bottom: 0.5rem;">PDF Format</h3>
+                    <a href="API_DOCUMENTATION.pdf" class="btn">📄 API Docs (93 KB)</a>
+                    <a href="OSD_TO_OPENSEARCH_API_MAPPING.pdf" class="btn">📄 Mapping (80 KB)</a>
+                </div>
+
+                <div>
+                    <h3 style="color: #667eea; margin-bottom: 0.5rem;">Word Format</h3>
+                    <a href="API_DOCUMENTATION.docx" class="btn">📝 API Docs (.docx)</a>
+                    <a href="OSD_TO_OPENSEARCH_API_MAPPING.docx" class="btn">📝 Mapping (.docx)</a>
+                </div>
+
+                <div>
+                    <h3 style="color: #667eea; margin-bottom: 0.5rem;">OpenAPI Spec</h3>
+                    <a href="openapi-spec.yaml" class="btn">📋 YAML (65 KB)</a>
+                    <p style="font-size: 0.9rem; color: #666; margin-top: 0.5rem;">Import into Postman, Insomnia</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Generated by osd-dev agent team | OpenSearch Dashboards API Documentation</p>
+        <p style="margin-top: 0.5rem; font-size: 0.9rem;">Last updated: March 19, 2026</p>
+    </div>
+</body>
+</html>

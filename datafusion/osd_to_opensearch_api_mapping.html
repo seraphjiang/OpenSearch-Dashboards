@@ -1,0 +1,1808 @@
+<h1 id="osd-to-opensearch-api-mapping">OSD-to-OpenSearch API
+Mapping</h1>
+<blockquote>
+<p>Generated: 2026-03-19 Sources: OPENSEARCH_CLIENT_USAGE.json,
+OSD_API_ROUTES.json, codebase analysis</p>
+</blockquote>
+<p>This document maps OpenSearch Dashboards (OSD) HTTP API endpoints to
+the underlying OpenSearch APIs they invoke.</p>
+<hr />
+<h2 id="table-of-contents">Table of Contents</h2>
+<ol type="1">
+<li><a href="#architecture-overview">Architecture Overview</a></li>
+<li><a href="#client-access-patterns">Client Access Patterns</a></li>
+<li><a href="#core-saved-objects-api">Core: Saved Objects API</a></li>
+<li><a href="#core-status--health">Core: Status &amp; Health</a></li>
+<li><a href="#plugin-data-search">Plugin: Data (Search)</a></li>
+<li><a href="#plugin-console-dev-tools-proxy">Plugin: Console (Dev Tools
+Proxy)</a></li>
+<li><a href="#plugin-data-importer">Plugin: Data Importer</a></li>
+<li><a href="#plugin-application-config">Plugin: Application
+Config</a></li>
+<li><a href="#plugin-region-map">Plugin: Region Map</a></li>
+<li><a href="#plugin-index-pattern-management">Plugin: Index Pattern
+Management</a></li>
+<li><a href="#plugin-query-enhancements">Plugin: Query
+Enhancements</a></li>
+<li><a href="#plugin-data-source-management">Plugin: Data Source
+Management</a></li>
+<li><a href="#plugin-chat-mlai">Plugin: Chat (ML/AI)</a></li>
+<li><a href="#plugin-workspace">Plugin: Workspace</a></li>
+<li><a href="#plugin-home-sample-data">Plugin: Home (Sample
+Data)</a></li>
+<li><a href="#plugin-telemetry">Plugin: Telemetry</a></li>
+<li><a href="#plugin-vis-type-timeline">Plugin: Vis Type
+Timeline</a></li>
+<li><a href="#plugin-vis-type-timeseries-tsvb">Plugin: Vis Type
+Timeseries (TSVB)</a></li>
+<li><a href="#plugin-data-source">Plugin: Data Source</a></li>
+<li><a href="#plugin-saved-objects-management">Plugin: Saved Objects
+Management</a></li>
+<li><a href="#plugin-share-short-urls">Plugin: Share (Short
+URLs)</a></li>
+<li><a href="#plugin-legacy-export">Plugin: Legacy Export</a></li>
+<li><a href="#core-dynamic-config-store-internal">Core: Dynamic Config
+Store (Internal)</a></li>
+<li><a href="#core-saved-objects-migrations-internal">Core: Saved
+Objects Migrations (Internal)</a></li>
+<li><a
+href="#cross-reference-opensearch-api-to-osd-endpoints">Cross-Reference:
+OpenSearch API to OSD Endpoints</a></li>
+<li><a href="#summary-statistics">Summary Statistics</a></li>
+</ol>
+<hr />
+<h2 id="architecture-overview">Architecture Overview</h2>
+<pre><code>Browser/Client
+     |
+     v
+  OSD HTTP API  (Hapi.js routes, /api/*)
+     |
+     v
+  Route Handler (plugin server code)
+     |
+     v
+  OpenSearch Client (scoped or internal)
+     |
+     v
+  OpenSearch Cluster (REST API)</code></pre>
+<p>OSD acts as a gateway: browser clients call OSD’s HTTP API, and route
+handlers translate these into one or more OpenSearch REST API calls. The
+mapping is not always 1:1 – a single OSD endpoint may call multiple
+OpenSearch APIs, and some OpenSearch APIs are called from internal
+background processes rather than HTTP routes.</p>
+<hr />
+<h2 id="client-access-patterns">Client Access Patterns</h2>
+<table>
+<colgroup>
+<col style="width: 29%" />
+<col style="width: 41%" />
+<col style="width: 29%" />
+</colgroup>
+<thead>
+<tr>
+<th>Pattern</th>
+<th>Description</th>
+<th>Used By</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>context.core.opensearch.client.asCurrentUser</code></td>
+<td>Scoped client with user auth headers</td>
+<td>Most route handlers</td>
+</tr>
+<tr>
+<td><code>context.core.opensearch.client.asInternalUser</code></td>
+<td>Internal client (no user auth)</td>
+<td>Background tasks, config reads</td>
+</tr>
+<tr>
+<td><code>opensearch.client.asInternalUser</code></td>
+<td>Core-level internal client</td>
+<td>Health checks, migrations</td>
+</tr>
+<tr>
+<td><code>context.core.opensearch.legacy.client.callAsCurrentUser</code></td>
+<td><strong>Legacy</strong> string-based endpoint call</td>
+<td>Older plugins (deprecated)</td>
+</tr>
+<tr>
+<td><code>client.transport.request({ method, path })</code></td>
+<td>Low-level HTTP for custom OpenSearch plugin APIs</td>
+<td>Console, Chat, Query Assist</td>
+</tr>
+<tr>
+<td><code>context.dataSource.opensearch</code></td>
+<td>Multi-data-source scoped client</td>
+<td>Data Source Management (MDS)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="core-saved-objects-api">Core: Saved Objects API</h2>
+<p>The saved objects API is the <strong>largest consumer</strong> of
+OpenSearch APIs. It manages all persistent objects (dashboards,
+visualizations, index patterns, searches, etc.).</p>
+<p><strong>Source:</strong>
+<code>src/core/server/saved_objects/routes/</code> <strong>OpenSearch
+Client:</strong>
+<code>src/core/server/saved_objects/service/lib/repository.ts</code></p>
+<h3 id="endpoint-mappings">Endpoint Mappings</h3>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 14%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>OSD Endpoint</th>
+<th>Method</th>
+<th>OpenSearch APIs Called</th>
+<th>Data Flow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/saved_objects/_find</code></td>
+<td>GET</td>
+<td><code>search</code></td>
+<td>Query params -&gt; OpenSearch query DSL -&gt; search on
+<code>.kibana</code> index</td>
+</tr>
+<tr>
+<td><code>/api/saved_objects/{type}/{id}</code></td>
+<td>GET</td>
+<td><code>get</code>, <code>mget</code></td>
+<td>Fetches single saved object by type+id from <code>.kibana</code>
+index</td>
+</tr>
+<tr>
+<td><code>/api/saved_objects/_bulk_get</code></td>
+<td>POST</td>
+<td><code>mget</code></td>
+<td>Batch fetch of saved objects by type+id pairs</td>
+</tr>
+<tr>
+<td><code>/api/saved_objects/{type}/{id?}</code></td>
+<td>POST</td>
+<td><code>index</code> or <code>create</code></td>
+<td>Creates new saved object. Uses <code>create</code> (no overwrite) or
+<code>index</code> (with overwrite flag)</td>
+</tr>
+<tr>
+<td><code>/api/saved_objects/{type}/{id}</code></td>
+<td>PUT</td>
+<td><code>update</code></td>
+<td>Partial update of saved object document</td>
+</tr>
+<tr>
+<td><code>/api/saved_objects/{type}/{id}</code></td>
+<td>DELETE</td>
+<td><code>mget</code> + <code>delete</code> / <code>update</code></td>
+<td>Checks doc exists via <code>mget</code>, then deletes or removes
+namespace</td>
+</tr>
+<tr>
+<td><code>/api/saved_objects/_bulk_create</code></td>
+<td>POST</td>
+<td><code>mget</code> + <code>bulk</code></td>
+<td>Pre-checks existing docs via <code>mget</code>, then bulk
+indexes</td>
+</tr>
+<tr>
+<td><code>/api/saved_objects/_bulk_update</code></td>
+<td>PUT</td>
+<td><code>mget</code> + <code>bulk</code></td>
+<td>Pre-checks docs via <code>mget</code>, then bulk updates</td>
+</tr>
+<tr>
+<td><code>/api/saved_objects/_import</code></td>
+<td>POST</td>
+<td><code>mget</code> + <code>bulk</code> + <code>create</code></td>
+<td>Imports saved objects from NDJSON stream</td>
+</tr>
+<tr>
+<td><code>/api/saved_objects/_export</code></td>
+<td>POST</td>
+<td><code>search</code> (with scroll)</td>
+<td>Exports saved objects as NDJSON using scroll API</td>
+</tr>
+<tr>
+<td><code>/api/saved_objects/_resolve_import_errors</code></td>
+<td>POST</td>
+<td><code>mget</code> + <code>bulk</code></td>
+<td>Resolves conflicts from import</td>
+</tr>
+<tr>
+<td><code>/internal/saved_objects/_migrate</code></td>
+<td>POST</td>
+<td>(all migration APIs)</td>
+<td>Triggers saved objects migrations</td>
+</tr>
+</tbody>
+</table>
+<h3 id="requestresponse-transformations">Request/Response
+Transformations</h3>
+<pre><code>OSD Request: GET /api/saved_objects/_find?type=dashboard&amp;search=test
+    |
+    v
+Repository.find() builds OpenSearch query:
+    {
+      index: &quot;.kibana&quot;,
+      body: {
+        query: { bool: { filter: [...type filters, ...search query] } },
+        sort: [...],
+        size: perPage,
+        from: (page - 1) * perPage
+      }
+    }
+    |
+    v
+OpenSearch: POST /.kibana/_search
+    |
+    v
+OSD Response: { saved_objects: [...], total, per_page, page }</code></pre>
+<hr />
+<h2 id="core-status-health">Core: Status &amp; Health</h2>
+<p><strong>Source:</strong>
+<code>src/core/server/opensearch/version_check/ensure_opensearch_version.ts</code>,
+<code>src/core/server/status/routes/</code></p>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 14%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>OSD Endpoint</th>
+<th>Method</th>
+<th>OpenSearch APIs Called</th>
+<th>Data Flow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/status</code></td>
+<td>GET</td>
+<td>(reads cached status)</td>
+<td>Serves pre-computed status from background polling</td>
+</tr>
+<tr>
+<td>(internal background)</td>
+<td>-</td>
+<td><code>nodes.info</code></td>
+<td>Checks OpenSearch node versions for compatibility</td>
+</tr>
+<tr>
+<td>(internal background)</td>
+<td>-</td>
+<td><code>cluster.state</code></td>
+<td>Gets cluster node IDs for optimized health check</td>
+</tr>
+<tr>
+<td>(internal background)</td>
+<td>-</td>
+<td><code>cat.plugins</code></td>
+<td>Cross-compatibility service checks installed OpenSearch plugins</td>
+</tr>
+<tr>
+<td>(internal background)</td>
+<td>-</td>
+<td><code>info()</code></td>
+<td>Core usage data service gets cluster info</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="plugin-data-search">Plugin: Data (Search)</h2>
+<p><strong>Source:</strong>
+<code>src/plugins/data/server/search/</code>,
+<code>src/plugins/data/server/autocomplete/</code>,
+<code>src/plugins/data/server/index_patterns/</code></p>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 14%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>OSD Endpoint</th>
+<th>Method</th>
+<th>OpenSearch APIs Called</th>
+<th>Data Flow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/internal/search/{strategy}/{id?}</code></td>
+<td>POST</td>
+<td><code>search</code></td>
+<td>User search queries -&gt; OpenSearch search API with abort signal
+support</td>
+</tr>
+<tr>
+<td><code>/internal/search/{strategy}/{id}</code></td>
+<td>DELETE</td>
+<td>(cancel search)</td>
+<td>Cancel in-flight search</td>
+</tr>
+<tr>
+<td><code>/internal/_msearch</code></td>
+<td>POST</td>
+<td><code>msearch</code></td>
+<td>Multi-search for batch query execution (deprecated)</td>
+</tr>
+<tr>
+<td><code>/api/opensearch-dashboards/suggestions/values/{index}</code></td>
+<td>POST</td>
+<td><code>search</code> (legacy)</td>
+<td>Autocomplete value suggestions</td>
+</tr>
+<tr>
+<td><code>/api/index_patterns/_fields_for_wildcard</code></td>
+<td>GET</td>
+<td>Legacy client field caps</td>
+<td>Get fields for wildcard index pattern</td>
+</tr>
+<tr>
+<td><code>/api/index_patterns/_fields_for_time_pattern</code></td>
+<td>GET</td>
+<td>Legacy client field caps</td>
+<td>Get fields for time-based pattern</td>
+</tr>
+<tr>
+<td><code>/api/opensearch-dashboards/scripts/languages</code></td>
+<td>GET</td>
+<td>(none)</td>
+<td>Returns supported script languages</td>
+</tr>
+</tbody>
+</table>
+<h3 id="requestresponse-transformations-search">Request/Response
+Transformations (Search)</h3>
+<pre><code>OSD Request: POST /internal/search/opensearch
+    body: { params: { index: &quot;my-index-*&quot;, body: { query: {...}, aggs: {...} } } }
+    |
+    v
+opensearch_search_strategy.ts:
+    const params = shimHitsTotal(request.params);
+    shimAbortSignal(client.search(params), options?.abortSignal)
+    |
+    v
+OpenSearch: POST /my-index-*/_search
+    body: { query: {...}, aggs: {...} }
+    |
+    v
+OSD Response: { rawResponse: { hits: {...}, aggregations: {...} } }</code></pre>
+<hr />
+<h2 id="plugin-console-dev-tools-proxy">Plugin: Console (Dev Tools
+Proxy)</h2>
+<p><strong>Source:</strong>
+<code>src/plugins/console/server/routes/api/console/proxy/</code></p>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 14%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>OSD Endpoint</th>
+<th>Method</th>
+<th>OpenSearch APIs Called</th>
+<th>Data Flow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/console/proxy</code></td>
+<td>POST</td>
+<td><code>transport.request</code> (ANY)</td>
+<td>Proxies arbitrary user requests directly to OpenSearch</td>
+</tr>
+<tr>
+<td><code>/api/console/opensearch_config</code></td>
+<td>GET</td>
+<td>(none)</td>
+<td>Returns OpenSearch config for console UI</td>
+</tr>
+<tr>
+<td><code>/api/console/api_server</code></td>
+<td>GET/POST</td>
+<td>(none)</td>
+<td>API spec definitions for autocomplete</td>
+</tr>
+</tbody>
+</table>
+<h3 id="requestresponse-transformations-1">Request/Response
+Transformations</h3>
+<pre><code>OSD Request: POST /api/console/proxy?path=/_cat/indices&amp;method=GET
+    |
+    v
+create_handler.ts:
+    client.transport.request({
+      method: req.query.method,
+      path: req.query.path,
+      body: req.payload,
+      querystring: req.query.query_string
+    })
+    |
+    v
+OpenSearch: GET /_cat/indices  (or ANY user-specified endpoint)
+    |
+    v
+OSD Response: Raw OpenSearch response (passthrough)</code></pre>
+<p><strong>Note:</strong> The Console proxy is a passthrough – it can
+call ANY OpenSearch API. This is the most powerful and potentially
+dangerous endpoint.</p>
+<hr />
+<h2 id="plugin-data-importer">Plugin: Data Importer</h2>
+<p><strong>Source:</strong>
+<code>src/plugins/data_importer/server/routes/</code></p>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 14%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>OSD Endpoint</th>
+<th>Method</th>
+<th>OpenSearch APIs Called</th>
+<th>Data Flow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/data_importer/_import_file</code></td>
+<td>POST</td>
+<td><code>indices.exists</code> + <code>indices.create</code> +
+<code>index</code> + <code>indices.updateAliases</code></td>
+<td>Imports CSV/JSON/NDJSON files into new index</td>
+</tr>
+<tr>
+<td><code>/api/data_importer/_import_text</code></td>
+<td>POST</td>
+<td><code>indices.exists</code> + <code>indices.create</code> +
+<code>index</code> + <code>indices.updateAliases</code></td>
+<td>Imports text content into new index</td>
+</tr>
+<tr>
+<td><code>/api/data_importer/_preview</code></td>
+<td>POST</td>
+<td><code>indices.exists</code> + <code>indices.getMapping</code></td>
+<td>Previews import with schema detection</td>
+</tr>
+<tr>
+<td><code>/api/data_importer/_cat_indices</code></td>
+<td>GET</td>
+<td><code>cat.indices</code></td>
+<td>Lists available indices</td>
+</tr>
+</tbody>
+</table>
+<h3 id="requestresponse-transformations-import">Request/Response
+Transformations (Import)</h3>
+<pre><code>OSD Request: POST /api/data_importer/_import_file
+    body: { file: &lt;multipart&gt;, index: &quot;my-data&quot;, dataSourceId: &quot;...&quot; }
+    |
+    v
+import_file.ts:
+    1. client.indices.exists({ index })  // Check if index exists
+    2. client.indices.create({ index, body: { mappings, settings } })  // Create if needed
+    3. For each row/record:
+       processor.index({ index, body: record })  // Index documents
+    4. client.indices.updateAliases(...)  // Optional alias creation
+    |
+    v
+OpenSearch: PUT /my-data (create index)
+            PUT /my-data/_doc/{id} (index each document)
+            POST /_aliases (alias management)
+    |
+    v
+OSD Response: { success: true, count: N, errors: [...] }</code></pre>
+<hr />
+<h2 id="plugin-application-config">Plugin: Application Config</h2>
+<p><strong>Source:</strong>
+<code>src/plugins/application_config/server/routes/</code>,
+<code>src/plugins/application_config/server/opensearch_config_client.ts</code></p>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 14%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>OSD Endpoint</th>
+<th>Method</th>
+<th>OpenSearch APIs Called</th>
+<th>Data Flow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/appconfig/{entity}</code></td>
+<td>GET</td>
+<td><code>get</code></td>
+<td>Fetches config entity by ID (uses <code>asInternalUser</code>)</td>
+</tr>
+<tr>
+<td><code>/api/appconfig/{entity}</code></td>
+<td>POST</td>
+<td><code>index</code></td>
+<td>Creates/updates config value (uses <code>asCurrentUser</code>)</td>
+</tr>
+<tr>
+<td><code>/api/appconfig/{entity}</code></td>
+<td>DELETE</td>
+<td><code>delete</code></td>
+<td>Deletes config entity (uses <code>asCurrentUser</code>)</td>
+</tr>
+<tr>
+<td><code>/api/appconfig</code></td>
+<td>GET</td>
+<td><code>search</code></td>
+<td>Lists all config entities (uses <code>asInternalUser</code>)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="plugin-region-map">Plugin: Region Map</h2>
+<p><strong>Source:</strong>
+<code>src/plugins/region_map/server/routes/opensearch.ts</code></p>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 14%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>OSD Endpoint</th>
+<th>Method</th>
+<th>OpenSearch APIs Called</th>
+<th>Data Flow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/geospatial/_indices</code></td>
+<td>GET</td>
+<td><code>cat.indices</code></td>
+<td>Lists indices for geo data selection</td>
+</tr>
+<tr>
+<td><code>/api/geospatial/_search</code></td>
+<td>POST</td>
+<td><code>search</code></td>
+<td>Searches for geo data in specified index</td>
+</tr>
+<tr>
+<td><code>/api/geospatial/_mappings</code></td>
+<td>GET</td>
+<td><code>indices.getMapping</code></td>
+<td>Gets index mappings to find geo fields</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="plugin-index-pattern-management">Plugin: Index Pattern
+Management</h2>
+<p><strong>Source:</strong>
+<code>src/plugins/index_pattern_management/server/routes/</code></p>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 14%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>OSD Endpoint</th>
+<th>Method</th>
+<th>OpenSearch APIs Called</th>
+<th>Data Flow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/internal/index-pattern-management/preview_scripted_field</code></td>
+<td>POST</td>
+<td><code>search</code></td>
+<td>Previews scripted field by running search with script_fields</td>
+</tr>
+<tr>
+<td><code>/internal/index-pattern-management/resolve_index/{query}</code></td>
+<td>GET</td>
+<td><code>indices.resolveIndex</code></td>
+<td>Resolves index pattern to concrete indices</td>
+</tr>
+</tbody>
+</table>
+<h3 id="requestresponse-transformations-2">Request/Response
+Transformations</h3>
+<pre><code>OSD Request: POST /internal/index-pattern-management/preview_scripted_field
+    body: { indexPatternTitle, script, lang, additionalFields }
+    |
+    v
+preview_scripted_field.ts:
+    client.search({
+      index: indexPatternTitle,
+      body: {
+        query: { match_all: {} },
+        size: 10,
+        _source: additionalFields,
+        script_fields: { preview: { script: { lang, source: script } } }
+      }
+    })
+    |
+    v
+OpenSearch: POST /{indexPatternTitle}/_search
+    |
+    v
+OSD Response: { hits: [...with script field values...] }</code></pre>
+<hr />
+<h2 id="plugin-query-enhancements">Plugin: Query Enhancements</h2>
+<p><strong>Source:</strong>
+<code>src/plugins/query_enhancements/server/routes/</code></p>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 14%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>OSD Endpoint</th>
+<th>Method</th>
+<th>OpenSearch APIs Called</th>
+<th>Data Flow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/enhancements/assist/generate</code></td>
+<td>POST</td>
+<td><code>transport.request</code> -&gt;
+<code>/_plugins/_ml/agents/{id}/_execute</code></td>
+<td>AI query generation via ML plugin agent</td>
+</tr>
+<tr>
+<td><code>/api/enhancements/assist/languages</code></td>
+<td>GET</td>
+<td>(via agent)</td>
+<td>Returns supported query languages</td>
+</tr>
+<tr>
+<td><code>/api/enhancements/datasource/connections/{id?}</code></td>
+<td>GET</td>
+<td><code>transport.request</code> -&gt;
+<code>/_plugins/_query/_datasources</code></td>
+<td>Get data source connections</td>
+</tr>
+<tr>
+<td><code>/api/enhancements/datasource/async_jobs</code></td>
+<td>GET/POST/DELETE</td>
+<td><code>transport.request</code> -&gt; direct query APIs</td>
+<td>Manage async query jobs</td>
+</tr>
+<tr>
+<td><code>/api/enhancements/datasource/remote_clusters/list</code></td>
+<td>GET</td>
+<td><code>transport.request</code></td>
+<td>List remote clusters</td>
+</tr>
+<tr>
+<td><code>/api/enhancements/datasource/remote_clusters/indexes</code></td>
+<td>GET</td>
+<td><code>transport.request</code></td>
+<td>Get remote cluster indexes</td>
+</tr>
+<tr>
+<td>PPL/SQL search strategies</td>
+<td>POST</td>
+<td>Legacy <code>callAsCurrentUser('enhancements.pplQuery')</code></td>
+<td>Executes PPL/SQL queries via custom endpoints</td>
+</tr>
+</tbody>
+</table>
+<h3 id="requestresponse-transformations-query-assist">Request/Response
+Transformations (Query Assist)</h3>
+<pre><code>OSD Request: POST /api/enhancements/assist/generate
+    body: { question: &quot;show me sales by region&quot;, index: &quot;sales-*&quot;, language: &quot;PPL&quot; }
+    |
+    v
+agents.ts:
+    client.transport.request({
+      method: &#39;POST&#39;,
+      path: `/_plugins/_ml/agents/${agentId}/_execute`,
+      body: { parameters: { question, index } }
+    })
+    |
+    v
+OpenSearch: POST /_plugins/_ml/agents/{agentId}/_execute
+    body: { parameters: { question: &quot;...&quot;, index: &quot;sales-*&quot; } }
+    |
+    v
+OSD Response: { query: &quot;source=sales-* | stats count() by region&quot; }</code></pre>
+<hr />
+<h2 id="plugin-data-source-management">Plugin: Data Source
+Management</h2>
+<p><strong>Source:</strong>
+<code>src/plugins/data_source_management/server/routes/</code></p>
+<h3 id="dsl-routes">DSL Routes</h3>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 14%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>OSD Endpoint</th>
+<th>Method</th>
+<th>OpenSearch APIs Called</th>
+<th>Data Flow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/dsl/_search</code></td>
+<td>POST</td>
+<td>Legacy <code>callAsCurrentUser('search')</code></td>
+<td>Execute DSL search query</td>
+</tr>
+<tr>
+<td><code>/api/dsl/_cat</code></td>
+<td>GET</td>
+<td><code>cat.indices</code></td>
+<td>Get catalog of indices</td>
+</tr>
+<tr>
+<td><code>/api/dsl/_mapping</code></td>
+<td>GET</td>
+<td><code>indices.getMapping</code></td>
+<td>Get index mappings</td>
+</tr>
+<tr>
+<td><code>/api/dsl/_settings</code></td>
+<td>GET</td>
+<td><code>indices.getSettings</code></td>
+<td>Get index settings</td>
+</tr>
+<tr>
+<td><code>/api/dsl/_cat/dataSourceMDSId={id}</code></td>
+<td>GET</td>
+<td><code>cat.indices</code> (via MDS client)</td>
+<td>Get catalog for remote data source</td>
+</tr>
+<tr>
+<td><code>/api/dsl/_mapping/dataSourceMDSId={id}</code></td>
+<td>GET</td>
+<td><code>indices.getMapping</code> (via MDS client)</td>
+<td>Get mappings for remote data source</td>
+</tr>
+<tr>
+<td><code>/api/dsl/_settings/dataSourceMDSId={id}</code></td>
+<td>GET</td>
+<td><code>indices.getSettings</code> (via MDS client)</td>
+<td>Get settings for remote data source</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ppl-routes">PPL Routes</h3>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 14%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>OSD Endpoint</th>
+<th>Method</th>
+<th>OpenSearch APIs Called</th>
+<th>Data Flow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/ppl/_search</code></td>
+<td>POST</td>
+<td>Legacy facet <code>ppl.pplQuery</code></td>
+<td>Execute PPL query</td>
+</tr>
+</tbody>
+</table>
+<h3 id="data-connection-routes">Data Connection Routes</h3>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 14%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>OSD Endpoint</th>
+<th>Method</th>
+<th>OpenSearch APIs Called</th>
+<th>Data Flow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/ppl/dataconnections/{name}</code></td>
+<td>GET</td>
+<td>Legacy <code>ppl.getDataConnectionById</code></td>
+<td>Get data connection by name</td>
+</tr>
+<tr>
+<td><code>/api/ppl/dataconnections/{name}</code></td>
+<td>DELETE</td>
+<td>Legacy <code>ppl.deleteDataConnection</code></td>
+<td>Delete data connection</td>
+</tr>
+<tr>
+<td><code>/api/ppl/dataconnections/{name}</code></td>
+<td>PUT</td>
+<td>Legacy <code>ppl.modifyDataConnection</code></td>
+<td>Update data connection</td>
+</tr>
+<tr>
+<td><code>/api/ppl/dataconnections</code></td>
+<td>GET</td>
+<td>Legacy <code>ppl.getDataConnections</code></td>
+<td>List all data connections</td>
+</tr>
+</tbody>
+</table>
+<h3 id="async-query-jobs-routes">Async Query Jobs Routes</h3>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 14%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>OSD Endpoint</th>
+<th>Method</th>
+<th>OpenSearch APIs Called</th>
+<th>Data Flow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/dataconnections/_jobs</code></td>
+<td>POST</td>
+<td>Legacy <code>datasourcemanagement.runDirectQuery</code></td>
+<td>Execute direct query</td>
+</tr>
+<tr>
+<td><code>/api/dataconnections/_jobs/{queryId}/{dataSourceMDSId?}</code></td>
+<td>GET</td>
+<td>Legacy <code>datasourcemanagement.getJobStatus</code></td>
+<td>Check async query job status</td>
+</tr>
+<tr>
+<td><code>/api/dataconnections/_jobs/{queryId}</code></td>
+<td>DELETE</td>
+<td>Legacy <code>datasourcemanagement.deleteJob</code></td>
+<td>Cancel/delete async query job</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note:</strong> This plugin heavily uses the legacy client
+pattern with custom OpenSearch plugin endpoints.</p>
+<hr />
+<h2 id="plugin-chat-mlai">Plugin: Chat (ML/AI)</h2>
+<p><strong>Source:</strong>
+<code>src/plugins/chat/server/routes/ml_routes/</code></p>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 14%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>OSD Endpoint</th>
+<th>Method</th>
+<th>OpenSearch APIs Called</th>
+<th>Data Flow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/chat/memory/sessions/search</code></td>
+<td>POST</td>
+<td><code>transport.request</code> -&gt; ML agent APIs</td>
+<td>Search agent memory sessions</td>
+</tr>
+<tr>
+<td><code>/api/chat/proxy</code></td>
+<td>POST</td>
+<td><code>transport.request</code> -&gt;
+<code>/_plugins/_ml/agents/{id}/_execute</code></td>
+<td>Proxy chat/agent requests via ML/AG-UI</td>
+</tr>
+</tbody>
+</table>
+<h3 id="requestresponse-transformations-3">Request/Response
+Transformations</h3>
+<pre><code>OSD Request: POST /api/chat/proxy
+    body: { messages: [...], conversationId: &quot;...&quot; }
+    |
+    v
+generic_ml_router.ts:
+    client.transport.request({
+      method: &#39;POST&#39;,
+      path: &#39;/_plugins/_ml/agents/{agentId}/_execute&#39;,
+      body: { parameters: { messages, conversationId } }
+    })
+    |
+    v
+OpenSearch: POST /_plugins/_ml/agents/{agentId}/_execute
+    |
+    v
+OSD Response: { messages: [...response messages...], conversationId }</code></pre>
+<hr />
+<h2 id="plugin-workspace">Plugin: Workspace</h2>
+<p><strong>Source:</strong>
+<code>src/plugins/workspace/server/routes/</code></p>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 14%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>OSD Endpoint</th>
+<th>Method</th>
+<th>OpenSearch APIs Called</th>
+<th>Data Flow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/workspaces/_list</code></td>
+<td>POST</td>
+<td><code>search</code> (via saved objects client)</td>
+<td>List workspaces</td>
+</tr>
+<tr>
+<td><code>/api/workspaces/{id}</code></td>
+<td>GET</td>
+<td><code>get</code> (via saved objects client)</td>
+<td>Get workspace by ID</td>
+</tr>
+<tr>
+<td><code>/api/workspaces</code></td>
+<td>POST</td>
+<td><code>index</code> (via saved objects client)</td>
+<td>Create workspace</td>
+</tr>
+<tr>
+<td><code>/api/workspaces/{id}</code></td>
+<td>PUT</td>
+<td><code>update</code> (via saved objects client)</td>
+<td>Update workspace</td>
+</tr>
+<tr>
+<td><code>/api/workspaces/{id}</code></td>
+<td>DELETE</td>
+<td><code>delete</code> + <code>updateByQuery</code> (via saved objects
+client)</td>
+<td>Delete workspace and dissociate objects</td>
+</tr>
+<tr>
+<td><code>/api/workspaces/_associate</code></td>
+<td>POST</td>
+<td><code>bulk</code> (via saved objects client)</td>
+<td>Associate saved objects with workspace</td>
+</tr>
+<tr>
+<td><code>/api/workspaces/_dissociate</code></td>
+<td>POST</td>
+<td><code>bulk</code> (via saved objects client)</td>
+<td>Dissociate saved objects from workspace</td>
+</tr>
+<tr>
+<td><code>/api/workspaces/_duplicate</code></td>
+<td>POST</td>
+<td><code>bulk</code> (via saved objects client)</td>
+<td>Duplicate saved objects between workspaces</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Note:</strong> Workspace routes interact with OpenSearch
+indirectly through the saved objects client.</p>
+<hr />
+<h2 id="plugin-home-sample-data">Plugin: Home (Sample Data)</h2>
+<p><strong>Source:</strong>
+<code>src/plugins/home/server/services/sample_data/routes/</code>,
+<code>src/plugins/home/server/routes/</code></p>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 14%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>OSD Endpoint</th>
+<th>Method</th>
+<th>OpenSearch APIs Called</th>
+<th>Data Flow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/sample_data</code></td>
+<td>GET</td>
+<td>(none)</td>
+<td>List available sample datasets</td>
+</tr>
+<tr>
+<td><code>/api/sample_data/{id}</code></td>
+<td>POST</td>
+<td><code>indices.create</code> + <code>bulk</code> +
+<code>indices.delete</code></td>
+<td>Install sample dataset (deletes old, creates index, bulk
+inserts)</td>
+</tr>
+<tr>
+<td><code>/api/sample_data/{id}</code></td>
+<td>DELETE</td>
+<td><code>indices.delete</code></td>
+<td>Uninstall sample dataset</td>
+</tr>
+<tr>
+<td><code>/api/home/hits_status</code></td>
+<td>POST</td>
+<td><code>search</code></td>
+<td>Check if OpenSearch indices have data</td>
+</tr>
+<tr>
+<td><code>/api/opensearch-dashboards/home/tutorials</code></td>
+<td>GET</td>
+<td>(none)</td>
+<td>Get available tutorials</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="plugin-telemetry">Plugin: Telemetry</h2>
+<p><strong>Source:</strong>
+<code>src/plugins/telemetry/server/</code></p>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 14%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>OSD Endpoint</th>
+<th>Method</th>
+<th>OpenSearch APIs Called</th>
+<th>Data Flow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/telemetry/v2/clusters/_stats</code></td>
+<td>POST</td>
+<td><code>cluster.stats</code> + <code>nodes.usage</code> +
+<code>info()</code> + <code>indices.getMapping</code> +
+<code>indices.stats</code></td>
+<td>Comprehensive cluster telemetry collection</td>
+</tr>
+<tr>
+<td><code>/api/telemetry/v2/clusters/_opt_in_stats</code></td>
+<td>POST</td>
+<td><code>cluster.stats</code> (via collector)</td>
+<td>Opt-in telemetry stats</td>
+</tr>
+<tr>
+<td><code>/api/telemetry/v2/optIn</code></td>
+<td>POST</td>
+<td>(none - saved objects only)</td>
+<td>Update telemetry opt-in status</td>
+</tr>
+<tr>
+<td><code>/api/telemetry/v2/userHasSeenNotice</code></td>
+<td>GET</td>
+<td>(none - saved objects only)</td>
+<td>Check if user has seen telemetry notice</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="plugin-vis-type-timeline">Plugin: Vis Type Timeline</h2>
+<p><strong>Source:</strong>
+<code>src/plugins/vis_type_timeline/server/</code></p>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 14%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>OSD Endpoint</th>
+<th>Method</th>
+<th>OpenSearch APIs Called</th>
+<th>Data Flow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/timeline/run</code></td>
+<td>POST</td>
+<td><code>search</code> (via chain runner)</td>
+<td>Execute Timeline expressions against OpenSearch</td>
+</tr>
+<tr>
+<td><code>/api/timeline/validate/opensearch</code></td>
+<td>POST</td>
+<td><code>search</code> (via chain runner)</td>
+<td>Validate OpenSearch connection via Timeline</td>
+</tr>
+<tr>
+<td><code>/api/timeline/functions</code></td>
+<td>GET</td>
+<td>(none)</td>
+<td>Get available Timeline functions</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="plugin-vis-type-timeseries-tsvb">Plugin: Vis Type Timeseries
+(TSVB)</h2>
+<p><strong>Source:</strong>
+<code>src/plugins/vis_type_timeseries/server/</code></p>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 14%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>OSD Endpoint</th>
+<th>Method</th>
+<th>OpenSearch APIs Called</th>
+<th>Data Flow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/metrics/vis/data</code></td>
+<td>POST</td>
+<td><code>search</code> (via search strategies)</td>
+<td>Get TSVB visualization data</td>
+</tr>
+<tr>
+<td><code>/api/metrics/vis/data-raw</code></td>
+<td>POST</td>
+<td><code>search</code> (via search strategies)</td>
+<td>Get raw TSVB visualization data</td>
+</tr>
+<tr>
+<td><code>/api/metrics/fields</code></td>
+<td>GET</td>
+<td>Field caps (via index patterns)</td>
+<td>Get fields for index pattern</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="plugin-data-source">Plugin: Data Source</h2>
+<p><strong>Source:</strong>
+<code>src/plugins/data_source/server/routes/</code></p>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 14%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>OSD Endpoint</th>
+<th>Method</th>
+<th>OpenSearch APIs Called</th>
+<th>Data Flow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/internal/data-source-management/validate</code></td>
+<td>POST</td>
+<td><code>info()</code> or <code>cat.indices</code></td>
+<td>Test data source connection (uses <code>info()</code> for standard,
+<code>cat.indices</code> for serverless)</td>
+</tr>
+<tr>
+<td><code>/internal/data-source-management/fetchDataSourceMetaData</code></td>
+<td>POST</td>
+<td><code>info()</code></td>
+<td>Fetch data source metadata (version, distribution)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="plugin-saved-objects-management">Plugin: Saved Objects
+Management</h2>
+<p><strong>Source:</strong>
+<code>src/plugins/saved_objects_management/server/routes/</code></p>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 14%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>OSD Endpoint</th>
+<th>Method</th>
+<th>OpenSearch APIs Called</th>
+<th>Data Flow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/opensearch-dashboards/management/saved_objects/_find</code></td>
+<td>GET</td>
+<td><code>search</code> (via saved objects client)</td>
+<td>Find saved objects for management UI</td>
+</tr>
+<tr>
+<td><code>/api/opensearch-dashboards/management/saved_objects/{type}/{id}</code></td>
+<td>GET</td>
+<td><code>get</code> (via saved objects client)</td>
+<td>Get saved object</td>
+</tr>
+<tr>
+<td><code>/api/opensearch-dashboards/management/saved_objects/relationships/{type}/{id}</code></td>
+<td>GET</td>
+<td><code>search</code> (via saved objects client)</td>
+<td>Get object relationships</td>
+</tr>
+<tr>
+<td><code>/api/opensearch-dashboards/management/saved_objects/_allowed_types</code></td>
+<td>GET</td>
+<td>(none)</td>
+<td>Get allowed saved object types</td>
+</tr>
+<tr>
+<td><code>/api/opensearch-dashboards/management/saved_objects/scroll/counts</code></td>
+<td>POST</td>
+<td><code>search</code> (via saved objects client)</td>
+<td>Get scroll counts</td>
+</tr>
+<tr>
+<td><code>/api/opensearch-dashboards/management/saved_objects/scroll/export</code></td>
+<td>POST</td>
+<td><code>search</code> + <code>scroll</code> (via saved objects
+client)</td>
+<td>Export saved objects via scroll</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="plugin-share-short-urls">Plugin: Share (Short URLs)</h2>
+<p><strong>Source:</strong>
+<code>src/plugins/share/server/routes/</code></p>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 14%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>OSD Endpoint</th>
+<th>Method</th>
+<th>OpenSearch APIs Called</th>
+<th>Data Flow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/short_url</code></td>
+<td>POST</td>
+<td><code>index</code> (via saved objects client)</td>
+<td>Create short URL</td>
+</tr>
+<tr>
+<td><code>/api/short_url/{id}</code></td>
+<td>GET</td>
+<td><code>get</code> (via saved objects client)</td>
+<td>Resolve short URL</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="plugin-legacy-export">Plugin: Legacy Export</h2>
+<p><strong>Source:</strong>
+<code>src/plugins/legacy_export/server/routes/</code></p>
+<table>
+<colgroup>
+<col style="width: 24%" />
+<col style="width: 14%" />
+<col style="width: 40%" />
+<col style="width: 20%" />
+</colgroup>
+<thead>
+<tr>
+<th>OSD Endpoint</th>
+<th>Method</th>
+<th>OpenSearch APIs Called</th>
+<th>Data Flow</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/api/opensearch-dashboards/dashboards/export</code></td>
+<td>GET</td>
+<td><code>search</code> (via saved objects client)</td>
+<td>Export dashboards (legacy format)</td>
+</tr>
+<tr>
+<td><code>/api/opensearch-dashboards/dashboards/import</code></td>
+<td>POST</td>
+<td><code>bulk</code> (via saved objects client)</td>
+<td>Import dashboards (legacy format)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="core-dynamic-config-store-internal">Core: Dynamic Config Store
+(Internal)</h2>
+<p><strong>Source:</strong>
+<code>src/core/server/config/service/config_store_client/opensearch_config_store_client.ts</code></p>
+<p>This is an internal service (no direct HTTP routes) that stores
+dynamic configuration in OpenSearch.</p>
+<table>
+<colgroup>
+<col style="width: 38%" />
+<col style="width: 44%" />
+<col style="width: 18%" />
+</colgroup>
+<thead>
+<tr>
+<th>Internal Operation</th>
+<th>OpenSearch APIs Called</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Initialize config index</td>
+<td><code>indices.existsAlias</code> + <code>indices.create</code> +
+<code>indices.updateAliases</code></td>
+<td>Creates config index with alias on startup</td>
+</tr>
+<tr>
+<td>List configs</td>
+<td><code>search</code></td>
+<td>Retrieves all config documents</td>
+</tr>
+<tr>
+<td>Bulk create/update</td>
+<td><code>bulk</code></td>
+<td>Batch config operations</td>
+</tr>
+<tr>
+<td>Delete configs</td>
+<td><code>deleteByQuery</code></td>
+<td>Removes configs by name</td>
+</tr>
+<tr>
+<td>Find latest index</td>
+<td><code>cat.indices</code></td>
+<td>Finds the most recent config index version</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="core-saved-objects-migrations-internal">Core: Saved Objects
+Migrations (Internal)</h2>
+<p><strong>Source:</strong>
+<code>src/core/server/saved_objects/migrations/core/</code></p>
+<p>Migrations run at startup and are not exposed via HTTP API.</p>
+<table>
+<colgroup>
+<col style="width: 34%" />
+<col style="width: 46%" />
+<col style="width: 19%" />
+</colgroup>
+<thead>
+<tr>
+<th>Migration Phase</th>
+<th>OpenSearch APIs Called</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1. Read existing index</td>
+<td><code>indices.get</code></td>
+<td>Get current index mappings and settings</td>
+</tr>
+<tr>
+<td>2. Check aliases</td>
+<td><code>indices.getAlias</code></td>
+<td>Determine current index alias state</td>
+</tr>
+<tr>
+<td>3. Create new index</td>
+<td><code>indices.create</code></td>
+<td>Create target index with updated mappings</td>
+</tr>
+<tr>
+<td>4. Read all docs</td>
+<td><code>search</code> + <code>scroll</code> +
+<code>clearScroll</code></td>
+<td>Read all documents from source index</td>
+</tr>
+<tr>
+<td>5. Count docs</td>
+<td><code>count</code></td>
+<td>Check if migrations are up to date</td>
+</tr>
+<tr>
+<td>6. Write migrated docs</td>
+<td><code>bulk</code></td>
+<td>Bulk write transformed documents to new index</td>
+</tr>
+<tr>
+<td>7. Switch alias</td>
+<td><code>indices.updateAliases</code></td>
+<td>Atomically switch alias to new index</td>
+</tr>
+<tr>
+<td>8. Delete old index</td>
+<td><code>indices.delete</code></td>
+<td>Remove old index</td>
+</tr>
+<tr>
+<td>9. Refresh</td>
+<td><code>indices.refresh</code></td>
+<td>Refresh new index</td>
+</tr>
+<tr>
+<td>10. Cleanup templates</td>
+<td><code>indices.deleteTemplate</code></td>
+<td>Remove obsolete templates</td>
+</tr>
+<tr>
+<td>11. Reindex (if needed)</td>
+<td><code>reindex</code> + <code>tasks.get</code></td>
+<td>For alias conversion, reindex with wait</td>
+</tr>
+<tr>
+<td>12. Remove old types</td>
+<td><code>deleteByQuery</code></td>
+<td>Remove obsolete saved object types</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2
+id="cross-reference-opensearch-api-to-osd-endpoints">Cross-Reference:
+OpenSearch API to OSD Endpoints</h2>
+<table>
+<colgroup>
+<col style="width: 36%" />
+<col style="width: 63%" />
+</colgroup>
+<thead>
+<tr>
+<th>OpenSearch API</th>
+<th>OSD Endpoints That Use It</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>POST /{index}/_search</code></td>
+<td>Saved Objects <code>_find</code>, Data Search, Value Suggestions,
+Region Map search, Index Pattern preview, Application Config list,
+Dynamic Config list, Home hits_status, Timeline run, TSVB vis/data,
+Saved Objects Management, Telemetry</td>
+</tr>
+<tr>
+<td><code>POST /_msearch</code></td>
+<td>Data Search (multi-search), DSL routes</td>
+</tr>
+<tr>
+<td><code>POST /_search/scroll</code></td>
+<td>Saved Objects export, Migrations, Saved Objects Management
+export</td>
+</tr>
+<tr>
+<td><code>DELETE /_search/scroll</code></td>
+<td>Migrations (clearScroll)</td>
+</tr>
+<tr>
+<td><code>PUT /{index}/_doc/{id}</code></td>
+<td>Saved Objects create/update, Data Importer, Application Config
+update</td>
+</tr>
+<tr>
+<td><code>PUT /{index}/_create/{id}</code></td>
+<td>Saved Objects create (no-overwrite)</td>
+</tr>
+<tr>
+<td><code>POST /_bulk</code></td>
+<td>Saved Objects bulk ops, Sample Data install, Migrations, Dynamic
+Config</td>
+</tr>
+<tr>
+<td><code>POST /_mget</code></td>
+<td>Saved Objects get/bulk_get/delete/bulk_create/bulk_update</td>
+</tr>
+<tr>
+<td><code>GET /{index}/_doc/{id}</code></td>
+<td>Saved Objects get, Application Config get</td>
+</tr>
+<tr>
+<td><code>POST /{index}/_update/{id}</code></td>
+<td>Saved Objects update</td>
+</tr>
+<tr>
+<td><code>DELETE /{index}/_doc/{id}</code></td>
+<td>Saved Objects delete, Application Config delete</td>
+</tr>
+<tr>
+<td><code>POST /{index}/_delete_by_query</code></td>
+<td>Migrations cleanup, Dynamic Config delete, Workspace delete</td>
+</tr>
+<tr>
+<td><code>POST /{index}/_update_by_query</code></td>
+<td>Saved Objects deleteByNamespace/deleteByWorkspace</td>
+</tr>
+<tr>
+<td><code>POST /{index}/_count</code></td>
+<td>Migrations (up-to-date check)</td>
+</tr>
+<tr>
+<td><code>POST /_reindex</code></td>
+<td>Migrations (alias conversion)</td>
+</tr>
+<tr>
+<td><code>PUT /{index}</code> (create)</td>
+<td>Migrations, Dynamic Config, Data Importer, Sample Data</td>
+</tr>
+<tr>
+<td><code>DELETE /{index}</code></td>
+<td>Migrations, Sample Data uninstall</td>
+</tr>
+<tr>
+<td><code>GET /{index}</code></td>
+<td>Migrations</td>
+</tr>
+<tr>
+<td><code>HEAD /{index}</code></td>
+<td>Data Importer preview/import</td>
+</tr>
+<tr>
+<td><code>POST /_aliases</code></td>
+<td>Migrations, Dynamic Config, Data Importer</td>
+</tr>
+<tr>
+<td><code>GET /{index}/_alias/{name}</code></td>
+<td>Migrations, Dynamic Config</td>
+</tr>
+<tr>
+<td><code>HEAD /_alias/{name}</code></td>
+<td>Dynamic Config</td>
+</tr>
+<tr>
+<td><code>GET /{index}/_mapping</code></td>
+<td>Data Importer preview, Region Map mappings, DSL routes,
+Telemetry</td>
+</tr>
+<tr>
+<td><code>GET /{index}/_settings</code></td>
+<td>DSL routes</td>
+</tr>
+<tr>
+<td><code>PUT /{index}/_mapping</code></td>
+<td>(archiver internal only)</td>
+</tr>
+<tr>
+<td><code>PUT /{index}/_settings</code></td>
+<td>(archiver internal only)</td>
+</tr>
+<tr>
+<td><code>POST /{index}/_refresh</code></td>
+<td>Migrations</td>
+</tr>
+<tr>
+<td><code>DELETE /_template/{name}</code></td>
+<td>Migrations</td>
+</tr>
+<tr>
+<td><code>GET /</code> (<code>info()</code>)</td>
+<td>Telemetry cluster info, Data Source validation, Usage
+Collection</td>
+</tr>
+<tr>
+<td><code>GET /_cluster/state/{metric}</code></td>
+<td>Core health check (internal)</td>
+</tr>
+<tr>
+<td><code>GET /_cluster/stats</code></td>
+<td>Telemetry collection</td>
+</tr>
+<tr>
+<td><code>GET /_cluster/settings</code></td>
+<td>Data Importer</td>
+</tr>
+<tr>
+<td><code>GET /_cat/indices</code></td>
+<td>Data Importer, Region Map, Dynamic Config, Core Usage Data, Data
+Source validation (serverless)</td>
+</tr>
+<tr>
+<td><code>GET /_cat/plugins</code></td>
+<td>Core cross-compatibility (internal)</td>
+</tr>
+<tr>
+<td><code>GET /_nodes/{node_id}/{metric}</code></td>
+<td>Core version check (internal)</td>
+</tr>
+<tr>
+<td><code>GET /_nodes/usage</code></td>
+<td>Telemetry collection</td>
+</tr>
+<tr>
+<td><code>GET /{index}/_stats</code></td>
+<td>Telemetry data telemetry</td>
+</tr>
+<tr>
+<td><code>GET /_tasks/{task_id}</code></td>
+<td>Migrations (reindex polling)</td>
+</tr>
+<tr>
+<td><code>transport.request</code> (arbitrary)</td>
+<td>Console proxy (any), Chat ML APIs, Query Assist ML agents, Data
+Source connections</td>
+</tr>
+<tr>
+<td>Legacy <code>ppl.*</code></td>
+<td>Data Source Management (PPL queries, connections)</td>
+</tr>
+<tr>
+<td>Legacy <code>datasourcemanagement.*</code></td>
+<td>Data Source Management (direct queries, jobs)</td>
+</tr>
+<tr>
+<td>Legacy <code>enhancements.pplQuery</code></td>
+<td>Query Enhancements (PPL search strategy)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="summary-statistics">Summary Statistics</h2>
+<table>
+<colgroup>
+<col style="width: 53%" />
+<col style="width: 46%" />
+</colgroup>
+<thead>
+<tr>
+<th>Metric</th>
+<th>Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Total OSD API routes</td>
+<td>~130+</td>
+</tr>
+<tr>
+<td>Routes calling OpenSearch</td>
+<td>~95 (~73%)</td>
+</tr>
+<tr>
+<td>Unique OpenSearch APIs used</td>
+<td>38</td>
+</tr>
+<tr>
+<td>Document APIs</td>
+<td>15 (search, msearch, scroll, clearScroll, index, create, bulk, get,
+mget, update, delete, deleteByQuery, updateByQuery, count, reindex)</td>
+</tr>
+<tr>
+<td>Index Management APIs</td>
+<td>13
+(indices.create/delete/get/exists/existsAlias/getAlias/updateAliases/putSettings/putMapping/getMapping/getSettings/refresh/deleteTemplate)</td>
+</tr>
+<tr>
+<td>Cluster/Cat/Node APIs</td>
+<td>8 (cluster.state, cluster.stats, cluster.getSettings, cat.indices,
+cat.plugins, nodes.info, nodes.usage, info)</td>
+</tr>
+<tr>
+<td>Index Stats API</td>
+<td>1 (indices.stats)</td>
+</tr>
+<tr>
+<td>Task APIs</td>
+<td>1 (tasks.get)</td>
+</tr>
+<tr>
+<td>Transport (arbitrary)</td>
+<td>1 (transport.request for custom plugin APIs)</td>
+</tr>
+<tr>
+<td>Legacy custom endpoints</td>
+<td>9 (ppl.<em>, datasourcemanagement.</em>, enhancements.*)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="heaviest-opensearch-api-consumers">Heaviest OpenSearch API
+Consumers</h3>
+<ol type="1">
+<li><strong>Saved Objects Repository</strong> – search, index, create,
+get, bulk, mget, update, delete, updateByQuery, deleteByQuery (10
+APIs)</li>
+<li><strong>Saved Objects Migrations</strong> – 15 different APIs
+(indices.*, search, scroll, clearScroll, count, bulk, reindex,
+tasks.get, deleteByQuery)</li>
+<li><strong>Dynamic Config Store</strong> – search, bulk, deleteByQuery,
+indices.*, cat.indices (8 APIs)</li>
+<li><strong>Console Proxy</strong> – transport.request (can call ANY
+OpenSearch API)</li>
+<li><strong>Telemetry</strong> – cluster.stats, nodes.usage, info,
+indices.getMapping, indices.stats (5 APIs)</li>
+<li><strong>Data Importer</strong> – indices.exists, indices.create,
+index, indices.getMapping, indices.updateAliases, cat.indices,
+cluster.getSettings (7 APIs)</li>
+<li><strong>Data Source Management</strong> – 7+ legacy endpoints +
+standard indices/search APIs via DSL routes</li>
+</ol>
+<h3 id="routes-with-no-opensearch-interaction">Routes with NO OpenSearch
+interaction</h3>
+<p>Many OSD API routes serve static configuration, manage UI state, or
+delegate to other OSD services without directly calling OpenSearch: -
+<code>/api/status</code> (reads cached status) -
+<code>/api/telemetry/v2/optIn</code> (saved objects only) -
+<code>/api/opensearch-dashboards/scripts/languages</code> (static
+config) - <code>/api/console/opensearch_config</code> (local config) -
+<code>/api/timeline/functions</code> (function registry) -
+<code>/api/opensearch-dashboards/management/saved_objects/_allowed_types</code>
+(type registry) - <code>/api/opensearch-dashboards/home/tutorials</code>
+(static content) - <code>/api/banner/content</code> (config only) -
+Authentication/session routes (handled by security plugin)</p>

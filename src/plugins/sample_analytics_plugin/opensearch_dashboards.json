@@ -1,0 +1,8 @@
+{
+  "id": "sampleAnalytics",
+  "version": "opensearchDashboards",
+  "server": true,
+  "ui": true,
+  "requiredPlugins": [],
+  "optionalPlugins": []
+}

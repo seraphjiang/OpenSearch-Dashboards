@@ -81,6 +81,7 @@
             - [Form_wizard](../src/plugins/opensearch_ui_shared/public/forms/form_wizard/README.md)
             - [Multi_content](../src/plugins/opensearch_ui_shared/public/forms/multi_content/README.md)
       - [Query_enhancements](../src/plugins/query_enhancements/README.md)
+      - [Sample_analytics_plugin](../src/plugins/sample_analytics_plugin/README.md)
       - [Saved_objects](../src/plugins/saved_objects/README.md)
       - [Saved_objects_management](../src/plugins/saved_objects_management/README.md)
       - [Share](../src/plugins/share/README.md)

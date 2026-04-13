@@ -221,6 +221,16 @@ export default function chainRunner(tlConfig) {
 
     // This is setting the "global" sheet, required for resolving references
     sheet = parseSheet(request.sheet);
+
+    const MAX_EXPRESSIONS_PER_REQUEST = 50;
+    const totalExpressions = _.sumBy(sheet, (chainList) => chainList.length);
+    if (totalExpressions > MAX_EXPRESSIONS_PER_REQUEST) {
+      throw new Error(
+        `Request exceeds the maximum number of expressions (${MAX_EXPRESSIONS_PER_REQUEST}). ` +
+          `Found ${totalExpressions}.`
+      );
+    }
+
     return preProcessSheet(sheet).then(function () {
       return _.map(sheet, function (chainList, i) {
         return resolveChainList(chainList)

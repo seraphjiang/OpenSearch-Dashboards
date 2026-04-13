@@ -1,0 +1,538 @@
+================================================================================
+CHANGELOG FRAGMENT SYSTEM ANALYSIS REPORT
+OpenSearch Project Organization
+================================================================================
+
+Scan Date: 2026-03-20
+Organization: opensearch-project
+
+================================================================================
+SUMMARY STATISTICS
+================================================================================
+
+Total Repositories Scanned:              160
+Active Repositories (non-archived):      149
+Repositories WITH Changelog Fragments:   39
+Repositories WITHOUT Changelog Fragments: 110
+Percentage with Changelog System:        26.17%
+
+================================================================================
+REPOSITORIES WITH CHANGELOG FRAGMENT SYSTEMS (39 repos)
+================================================================================
+
+agent-health
+  URL: https://github.com/opensearch-project/agent-health
+  Location: .github/workflows/changelog.yml
+
+anomaly-detection
+  URL: https://github.com/opensearch-project/anomaly-detection
+  Location: .github/workflows/changelog_verifier.yml
+
+anomaly-detection-dashboards-plugin
+  URL: https://github.com/opensearch-project/anomaly-detection-dashboards-plugin
+  Location: .github/workflows/changelog_verifier.yml
+
+dashboards-assistant
+  URL: https://github.com/opensearch-project/dashboards-assistant
+  Location: .github/workflows/changelog_verifier.yml
+
+dashboards-flow-framework
+  URL: https://github.com/opensearch-project/dashboards-flow-framework
+  Location: .github/workflows/changelog_verifier.yml
+
+dashboards-maps
+  URL: https://github.com/opensearch-project/dashboards-maps
+  Location: .github/workflows/changelog_verifier.yml
+
+dashboards-search-relevance
+  URL: https://github.com/opensearch-project/dashboards-search-relevance
+  Location: .github/workflows/changelog_enforcer.yml
+
+flow-framework
+  URL: https://github.com/opensearch-project/flow-framework
+  Location: .github/workflows/changelog_verifier.yml
+
+genai-observability-sdk-py
+  URL: https://github.com/opensearch-project/genai-observability-sdk-py
+  Location: pyproject.toml (changelog tool config)
+
+geospatial
+  URL: https://github.com/opensearch-project/geospatial
+  Location: .github/workflows/changelog_verifier.yml
+
+job-scheduler
+  URL: https://github.com/opensearch-project/job-scheduler
+  Location: .github/workflows/changelog_verifier.yml
+
+k-NN
+  URL: https://github.com/opensearch-project/k-NN
+  Location: .github/workflows/changelog_verifier.yml
+
+neural-search
+  URL: https://github.com/opensearch-project/neural-search
+  Location: .github/workflows/changelog_verifier.yml
+
+OpenSearch
+  URL: https://github.com/opensearch-project/OpenSearch
+  Location: .github/workflows/changelog_verifier.yml
+
+opensearch-agent-server
+  URL: https://github.com/opensearch-project/opensearch-agent-server
+  Location: pyproject.toml (changelog tool config)
+
+opensearch-api-specification
+  URL: https://github.com/opensearch-project/opensearch-api-specification
+  Location: .github/workflows/changelog.yml
+
+opensearch-build
+  URL: https://github.com/opensearch-project/opensearch-build
+  Location: pyproject.toml (changelog tool config)
+
+OpenSearch-Dashboards
+  URL: https://github.com/opensearch-project/OpenSearch-Dashboards
+  Location: changelogs/fragments/
+
+opensearch-dashboards-sdk-js
+  URL: https://github.com/opensearch-project/opensearch-dashboards-sdk-js
+  Location: .github/workflows/changelog_verifier.yml
+
+opensearch-go
+  URL: https://github.com/opensearch-project/opensearch-go
+  Location: .github/workflows/changelog_verifier.yml
+
+opensearch-hadoop
+  URL: https://github.com/opensearch-project/opensearch-hadoop
+  Location: .github/workflows/changelog_verifier.yml
+
+opensearch-java
+  URL: https://github.com/opensearch-project/opensearch-java
+  Location: .github/workflows/changelog_verifier.yml
+
+opensearch-js
+  URL: https://github.com/opensearch-project/opensearch-js
+  Location: .github/workflows/changelog_verifier.yml
+
+opensearch-jvector
+  URL: https://github.com/opensearch-project/opensearch-jvector
+  Location: .github/workflows/changelog_verifier.yml
+
+opensearch-launchpad
+  URL: https://github.com/opensearch-project/opensearch-launchpad
+  Location: pyproject.toml (changelog tool config)
+
+opensearch-mcp-server-py
+  URL: https://github.com/opensearch-project/opensearch-mcp-server-py
+  Location: .github/workflows/changelog.yml
+
+opensearch-net
+  URL: https://github.com/opensearch-project/opensearch-net
+  Location: .github/workflows/changelog_verifier.yml
+
+opensearch-php
+  URL: https://github.com/opensearch-project/opensearch-php
+  Location: .github/workflows/changelog_verifier.yml
+
+opensearch-protobufs
+  URL: https://github.com/opensearch-project/opensearch-protobufs
+  Location: .github/workflows/changelog.yml
+
+opensearch-py
+  URL: https://github.com/opensearch-project/opensearch-py
+  Location: .github/workflows/changelog_verifier.yml
+
+opensearch-py-ml
+  URL: https://github.com/opensearch-project/opensearch-py-ml
+  Location: .github/workflows/changelog_verifier.yml
+
+opensearch-remote-metadata-sdk
+  URL: https://github.com/opensearch-project/opensearch-remote-metadata-sdk
+  Location: .github/workflows/changelog_verifier.yml
+
+opensearch-rs
+  URL: https://github.com/opensearch-project/opensearch-rs
+  Location: .github/workflows/changelog_verifier.yml
+
+oscar-ai-bot
+  URL: https://github.com/opensearch-project/oscar-ai-bot
+  Location: pyproject.toml (changelog tool config)
+
+oui
+  URL: https://github.com/opensearch-project/oui
+  Location: .github/workflows/changelog_verifier.yml
+
+search-relevance
+  URL: https://github.com/opensearch-project/search-relevance
+  Location: .github/workflows/changelog.yml
+
+security
+  URL: https://github.com/opensearch-project/security
+  Location: .github/workflows/changelog_verifier.yml
+
+security-dashboards-plugin
+  URL: https://github.com/opensearch-project/security-dashboards-plugin
+  Location: .github/workflows/changelog_verifier.yml
+
+user-behavior-insights
+  URL: https://github.com/opensearch-project/user-behavior-insights
+  Location: .github/workflows/changelog_verifier.yml
+
+================================================================================
+REPOSITORIES WITHOUT CHANGELOG FRAGMENT SYSTEMS (110 repos)
+================================================================================
+
+.github
+  URL: https://github.com/opensearch-project/.github
+
+agent-trace-eval-scheduler
+  URL: https://github.com/opensearch-project/agent-trace-eval-scheduler
+
+alerting
+  URL: https://github.com/opensearch-project/alerting
+
+alerting-dashboards-plugin
+  URL: https://github.com/opensearch-project/alerting-dashboards-plugin
+
+ansible-playbook
+  URL: https://github.com/opensearch-project/ansible-playbook
+
+asynchronous-search
+  URL: https://github.com/opensearch-project/asynchronous-search
+
+automation-app
+  URL: https://github.com/opensearch-project/automation-app
+
+cluster-etcd
+  URL: https://github.com/opensearch-project/cluster-etcd
+
+cluster-etcd-old
+  URL: https://github.com/opensearch-project/cluster-etcd-old
+
+common-utils
+  URL: https://github.com/opensearch-project/common-utils
+
+community
+  URL: https://github.com/opensearch-project/community
+
+cross-cluster-replication
+  URL: https://github.com/opensearch-project/cross-cluster-replication
+
+crypto
+  URL: https://github.com/opensearch-project/crypto
+
+custom-codecs
+  URL: https://github.com/opensearch-project/custom-codecs
+
+dashboards-anywhere
+  URL: https://github.com/opensearch-project/dashboards-anywhere
+
+dashboards-catalog
+  URL: https://github.com/opensearch-project/dashboards-catalog
+
+dashboards-desktop
+  URL: https://github.com/opensearch-project/dashboards-desktop
+
+dashboards-i18n
+  URL: https://github.com/opensearch-project/dashboards-i18n
+
+dashboards-investigation
+  URL: https://github.com/opensearch-project/dashboards-investigation
+
+dashboards-load-testing
+  URL: https://github.com/opensearch-project/dashboards-load-testing
+
+dashboards-notifications
+  URL: https://github.com/opensearch-project/dashboards-notifications
+
+dashboards-observability
+  URL: https://github.com/opensearch-project/dashboards-observability
+
+dashboards-query-workbench
+  URL: https://github.com/opensearch-project/dashboards-query-workbench
+
+dashboards-reporting
+  URL: https://github.com/opensearch-project/dashboards-reporting
+
+dashboards-storage-plugin
+  URL: https://github.com/opensearch-project/dashboards-storage-plugin
+
+dashboards-visualizations
+  URL: https://github.com/opensearch-project/dashboards-visualizations
+
+data-prepper
+  URL: https://github.com/opensearch-project/data-prepper
+
+demos
+  URL: https://github.com/opensearch-project/demos
+
+documentation-website
+  URL: https://github.com/opensearch-project/documentation-website
+
+foundation-website
+  URL: https://github.com/opensearch-project/foundation-website
+
+helm-charts
+  URL: https://github.com/opensearch-project/helm-charts
+
+index-management
+  URL: https://github.com/opensearch-project/index-management
+
+index-management-dashboards-plugin
+  URL: https://github.com/opensearch-project/index-management-dashboards-plugin
+
+jenkins-gitops
+  URL: https://github.com/opensearch-project/jenkins-gitops
+
+logstash-input-opensearch
+  URL: https://github.com/opensearch-project/logstash-input-opensearch
+
+logstash-output-opensearch
+  URL: https://github.com/opensearch-project/logstash-output-opensearch
+
+maps
+  URL: https://github.com/opensearch-project/maps
+
+ml-commons
+  URL: https://github.com/opensearch-project/ml-commons
+
+ml-commons-dashboards
+  URL: https://github.com/opensearch-project/ml-commons-dashboards
+
+neural-sparse-cpp
+  URL: https://github.com/opensearch-project/neural-sparse-cpp
+
+notifications
+  URL: https://github.com/opensearch-project/notifications
+
+observability
+  URL: https://github.com/opensearch-project/observability
+
+observability-stack
+  URL: https://github.com/opensearch-project/observability-stack
+
+opensearch-benchmark
+  URL: https://github.com/opensearch-project/opensearch-benchmark
+
+opensearch-benchmark-workloads
+  URL: https://github.com/opensearch-project/opensearch-benchmark-workloads
+
+opensearch-build-libraries
+  URL: https://github.com/opensearch-project/opensearch-build-libraries
+
+opensearch-catalog
+  URL: https://github.com/opensearch-project/opensearch-catalog
+
+opensearch-ci
+  URL: https://github.com/opensearch-project/opensearch-ci
+
+opensearch-cli
+  URL: https://github.com/opensearch-project/opensearch-cli
+
+opensearch-clients
+  URL: https://github.com/opensearch-project/opensearch-clients
+
+opensearch-cluster-cdk
+  URL: https://github.com/opensearch-project/opensearch-cluster-cdk
+
+opensearch-correlations
+  URL: https://github.com/opensearch-project/opensearch-correlations
+
+opensearch-dashboards-functional-test
+  URL: https://github.com/opensearch-project/opensearch-dashboards-functional-test
+
+opensearch-dashboards-test-library
+  URL: https://github.com/opensearch-project/opensearch-dashboards-test-library
+
+opensearch-devops
+  URL: https://github.com/opensearch-project/opensearch-devops
+
+opensearch-k8s-operator
+  URL: https://github.com/opensearch-project/opensearch-k8s-operator
+
+opensearch-learning-to-rank-base
+  URL: https://github.com/opensearch-project/opensearch-learning-to-rank-base
+
+opensearch-metrics
+  URL: https://github.com/opensearch-project/opensearch-metrics
+
+opensearch-migrations
+  URL: https://github.com/opensearch-project/opensearch-migrations
+
+opensearch-oci-object-storage
+  URL: https://github.com/opensearch-project/opensearch-oci-object-storage
+
+opensearch-olap
+  URL: https://github.com/opensearch-project/opensearch-olap
+
+opensearch-plugin-template-java
+  URL: https://github.com/opensearch-project/opensearch-plugin-template-java
+
+opensearch-plugins
+  URL: https://github.com/opensearch-project/opensearch-plugins
+
+opensearch-prometheus-exporter
+  URL: https://github.com/opensearch-project/opensearch-prometheus-exporter
+
+opensearch-research
+  URL: https://github.com/opensearch-project/opensearch-research
+
+opensearch-ruby
+  URL: https://github.com/opensearch-project/opensearch-ruby
+
+opensearch-ruby-aws-sigv4
+  URL: https://github.com/opensearch-project/opensearch-ruby-aws-sigv4
+
+opensearch-sdk-java
+  URL: https://github.com/opensearch-project/opensearch-sdk-java
+
+opensearch-signer-client
+  URL: https://github.com/opensearch-project/opensearch-signer-client
+
+opensearch-spark
+  URL: https://github.com/opensearch-project/opensearch-spark
+
+opensearch-specification
+  URL: https://github.com/opensearch-project/opensearch-specification
+
+opensearch-storage-encryption
+  URL: https://github.com/opensearch-project/opensearch-storage-encryption
+
+opensearch-system-templates
+  URL: https://github.com/opensearch-project/opensearch-system-templates
+
+opensearch-testcontainers
+  URL: https://github.com/opensearch-project/opensearch-testcontainers
+
+opensearch-traffic-gateway
+  URL: https://github.com/opensearch-project/opensearch-traffic-gateway
+
+opentelemetry-demo
+  URL: https://github.com/opensearch-project/opentelemetry-demo
+
+oui-docs-cdk
+  URL: https://github.com/opensearch-project/oui-docs-cdk
+
+performance-analyzer
+  URL: https://github.com/opensearch-project/performance-analyzer
+
+performance-analyzer-commons
+  URL: https://github.com/opensearch-project/performance-analyzer-commons
+
+performance-analyzer-rca
+  URL: https://github.com/opensearch-project/performance-analyzer-rca
+
+perftop
+  URL: https://github.com/opensearch-project/perftop
+
+piped-processing-language
+  URL: https://github.com/opensearch-project/piped-processing-language
+
+plugin-center
+  URL: https://github.com/opensearch-project/plugin-center
+
+project-meta
+  URL: https://github.com/opensearch-project/project-meta
+
+project-tools
+  URL: https://github.com/opensearch-project/project-tools
+
+project-website
+  URL: https://github.com/opensearch-project/project-website
+
+project-website-search
+  URL: https://github.com/opensearch-project/project-website-search
+
+query-insights
+  URL: https://github.com/opensearch-project/query-insights
+
+query-insights-dashboards
+  URL: https://github.com/opensearch-project/query-insights-dashboards
+
+remote-vector-index-builder
+  URL: https://github.com/opensearch-project/remote-vector-index-builder
+
+reporting
+  URL: https://github.com/opensearch-project/reporting
+
+reporting-cli
+  URL: https://github.com/opensearch-project/reporting-cli
+
+search-processor
+  URL: https://github.com/opensearch-project/search-processor
+
+security-analytics
+  URL: https://github.com/opensearch-project/security-analytics
+
+security-analytics-dashboards-plugin
+  URL: https://github.com/opensearch-project/security-analytics-dashboards-plugin
+
+security-response
+  URL: https://github.com/opensearch-project/security-response
+
+simple-schema
+  URL: https://github.com/opensearch-project/simple-schema
+
+skills
+  URL: https://github.com/opensearch-project/skills
+
+skills-eval
+  URL: https://github.com/opensearch-project/skills-eval
+
+spring-data-opensearch
+  URL: https://github.com/opensearch-project/spring-data-opensearch
+
+sql
+  URL: https://github.com/opensearch-project/sql
+
+sql-cli
+  URL: https://github.com/opensearch-project/sql-cli
+
+sql-jdbc
+  URL: https://github.com/opensearch-project/sql-jdbc
+
+sql-odbc
+  URL: https://github.com/opensearch-project/sql-odbc
+
+technical-steering
+  URL: https://github.com/opensearch-project/technical-steering
+
+terraform-provider-opensearch
+  URL: https://github.com/opensearch-project/terraform-provider-opensearch
+
+time-series-db
+  URL: https://github.com/opensearch-project/time-series-db
+
+traffic-comparator
+  URL: https://github.com/opensearch-project/traffic-comparator
+
+traffic-replayer
+  URL: https://github.com/opensearch-project/traffic-replayer
+
+ux
+  URL: https://github.com/opensearch-project/ux
+
+================================================================================
+ANALYSIS NOTES
+================================================================================
+
+This scan checked for the following changelog automation patterns:
+1. changelogs/fragments/ directory (OpenSearch-Dashboards style)
+2. .changelog/ directory
+3. changelog/fragments/ directory (without 's')
+4. GitHub workflow files with 'changelog' or 'fragment' in the name
+5. Configuration files for changelog tools (towncrier, scriv, etc.)
+
+Repositories marked as 'archived' were excluded from the analysis.
+
+================================================================================
+RECOMMENDATIONS
+================================================================================
+
+Based on this analysis:
+- Only 26.17% of active repositories use changelog fragment systems
+- Consider standardizing changelog practices across all repositories
+- Repositories without fragment systems may benefit from adopting this approach
+- This improves release notes generation and change tracking
+
+================================================================================
+END OF REPORT
+================================================================================

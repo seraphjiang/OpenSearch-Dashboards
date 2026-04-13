@@ -1,0 +1,649 @@
+{
+  "scan_date": "2026-03-20",
+  "summary": {
+    "total_repositories": 160,
+    "active_repositories": 149,
+    "repositories_with_changelog_fragments": 39,
+    "repositories_without_changelog_fragments": 110,
+    "percentage_with_fragments": "26.17%"
+  },
+  "repositories_with_changelog_system": [
+    {
+      "name": "OpenSearch-Dashboards",
+      "url": "https://github.com/opensearch-project/OpenSearch-Dashboards",
+      "changelog_location": "changelogs/fragments/"
+    },
+    {
+      "name": "opensearch-agent-server",
+      "url": "https://github.com/opensearch-project/opensearch-agent-server",
+      "changelog_location": "pyproject.toml (changelog tool config)"
+    },
+    {
+      "name": "OpenSearch",
+      "url": "https://github.com/opensearch-project/OpenSearch",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    },
+    {
+      "name": "k-NN",
+      "url": "https://github.com/opensearch-project/k-NN",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    },
+    {
+      "name": "opensearch-hadoop",
+      "url": "https://github.com/opensearch-project/opensearch-hadoop",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    },
+    {
+      "name": "opensearch-remote-metadata-sdk",
+      "url": "https://github.com/opensearch-project/opensearch-remote-metadata-sdk",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    },
+    {
+      "name": "security",
+      "url": "https://github.com/opensearch-project/security",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    },
+    {
+      "name": "opensearch-jvector",
+      "url": "https://github.com/opensearch-project/opensearch-jvector",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    },
+    {
+      "name": "flow-framework",
+      "url": "https://github.com/opensearch-project/flow-framework",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    },
+    {
+      "name": "opensearch-launchpad",
+      "url": "https://github.com/opensearch-project/opensearch-launchpad",
+      "changelog_location": "pyproject.toml (changelog tool config)"
+    },
+    {
+      "name": "oui",
+      "url": "https://github.com/opensearch-project/oui",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    },
+    {
+      "name": "opensearch-protobufs",
+      "url": "https://github.com/opensearch-project/opensearch-protobufs",
+      "changelog_location": ".github/workflows/changelog.yml"
+    },
+    {
+      "name": "opensearch-api-specification",
+      "url": "https://github.com/opensearch-project/opensearch-api-specification",
+      "changelog_location": ".github/workflows/changelog.yml"
+    },
+    {
+      "name": "opensearch-build",
+      "url": "https://github.com/opensearch-project/opensearch-build",
+      "changelog_location": "pyproject.toml (changelog tool config)"
+    },
+    {
+      "name": "genai-observability-sdk-py",
+      "url": "https://github.com/opensearch-project/genai-observability-sdk-py",
+      "changelog_location": "pyproject.toml (changelog tool config)"
+    },
+    {
+      "name": "agent-health",
+      "url": "https://github.com/opensearch-project/agent-health",
+      "changelog_location": ".github/workflows/changelog.yml"
+    },
+    {
+      "name": "opensearch-mcp-server-py",
+      "url": "https://github.com/opensearch-project/opensearch-mcp-server-py",
+      "changelog_location": ".github/workflows/changelog.yml"
+    },
+    {
+      "name": "dashboards-search-relevance",
+      "url": "https://github.com/opensearch-project/dashboards-search-relevance",
+      "changelog_location": ".github/workflows/changelog_enforcer.yml"
+    },
+    {
+      "name": "oscar-ai-bot",
+      "url": "https://github.com/opensearch-project/oscar-ai-bot",
+      "changelog_location": "pyproject.toml (changelog tool config)"
+    },
+    {
+      "name": "search-relevance",
+      "url": "https://github.com/opensearch-project/search-relevance",
+      "changelog_location": ".github/workflows/changelog.yml"
+    },
+    {
+      "name": "opensearch-go",
+      "url": "https://github.com/opensearch-project/opensearch-go",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    },
+    {
+      "name": "anomaly-detection-dashboards-plugin",
+      "url": "https://github.com/opensearch-project/anomaly-detection-dashboards-plugin",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    },
+    {
+      "name": "neural-search",
+      "url": "https://github.com/opensearch-project/neural-search",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    },
+    {
+      "name": "opensearch-py",
+      "url": "https://github.com/opensearch-project/opensearch-py",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    },
+    {
+      "name": "opensearch-rs",
+      "url": "https://github.com/opensearch-project/opensearch-rs",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    },
+    {
+      "name": "dashboards-assistant",
+      "url": "https://github.com/opensearch-project/dashboards-assistant",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    },
+    {
+      "name": "opensearch-java",
+      "url": "https://github.com/opensearch-project/opensearch-java",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    },
+    {
+      "name": "job-scheduler",
+      "url": "https://github.com/opensearch-project/job-scheduler",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    },
+    {
+      "name": "anomaly-detection",
+      "url": "https://github.com/opensearch-project/anomaly-detection",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    },
+    {
+      "name": "opensearch-js",
+      "url": "https://github.com/opensearch-project/opensearch-js",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    },
+    {
+      "name": "opensearch-php",
+      "url": "https://github.com/opensearch-project/opensearch-php",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    },
+    {
+      "name": "dashboards-flow-framework",
+      "url": "https://github.com/opensearch-project/dashboards-flow-framework",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    },
+    {
+      "name": "dashboards-maps",
+      "url": "https://github.com/opensearch-project/dashboards-maps",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    },
+    {
+      "name": "security-dashboards-plugin",
+      "url": "https://github.com/opensearch-project/security-dashboards-plugin",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    },
+    {
+      "name": "geospatial",
+      "url": "https://github.com/opensearch-project/geospatial",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    },
+    {
+      "name": "opensearch-py-ml",
+      "url": "https://github.com/opensearch-project/opensearch-py-ml",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    },
+    {
+      "name": "user-behavior-insights",
+      "url": "https://github.com/opensearch-project/user-behavior-insights",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    },
+    {
+      "name": "opensearch-net",
+      "url": "https://github.com/opensearch-project/opensearch-net",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    },
+    {
+      "name": "opensearch-dashboards-sdk-js",
+      "url": "https://github.com/opensearch-project/opensearch-dashboards-sdk-js",
+      "changelog_location": ".github/workflows/changelog_verifier.yml"
+    }
+  ],
+  "repositories_without_changelog_system": [
+    {
+      "name": "opensearch-migrations",
+      "url": "https://github.com/opensearch-project/opensearch-migrations"
+    },
+    {
+      "name": "opensearch-benchmark",
+      "url": "https://github.com/opensearch-project/opensearch-benchmark"
+    },
+    {
+      "name": "data-prepper",
+      "url": "https://github.com/opensearch-project/data-prepper"
+    },
+    {
+      "name": "sql",
+      "url": "https://github.com/opensearch-project/sql"
+    },
+    {
+      "name": "documentation-website",
+      "url": "https://github.com/opensearch-project/documentation-website"
+    },
+    {
+      "name": "dashboards-investigation",
+      "url": "https://github.com/opensearch-project/dashboards-investigation"
+    },
+    {
+      "name": "opensearch-storage-encryption",
+      "url": "https://github.com/opensearch-project/opensearch-storage-encryption"
+    },
+    {
+      "name": "opensearch-dashboards-functional-test",
+      "url": "https://github.com/opensearch-project/opensearch-dashboards-functional-test"
+    },
+    {
+      "name": "opensearch-ci",
+      "url": "https://github.com/opensearch-project/opensearch-ci"
+    },
+    {
+      "name": "automation-app",
+      "url": "https://github.com/opensearch-project/automation-app"
+    },
+    {
+      "name": "skills",
+      "url": "https://github.com/opensearch-project/skills"
+    },
+    {
+      "name": "skills-eval",
+      "url": "https://github.com/opensearch-project/skills-eval"
+    },
+    {
+      "name": "observability-stack",
+      "url": "https://github.com/opensearch-project/observability-stack"
+    },
+    {
+      "name": "opensearch-cluster-cdk",
+      "url": "https://github.com/opensearch-project/opensearch-cluster-cdk"
+    },
+    {
+      "name": "alerting",
+      "url": "https://github.com/opensearch-project/alerting"
+    },
+    {
+      "name": "ml-commons",
+      "url": "https://github.com/opensearch-project/ml-commons"
+    },
+    {
+      "name": "notifications",
+      "url": "https://github.com/opensearch-project/notifications"
+    },
+    {
+      "name": "neural-sparse-cpp",
+      "url": "https://github.com/opensearch-project/neural-sparse-cpp"
+    },
+    {
+      "name": "project-website",
+      "url": "https://github.com/opensearch-project/project-website"
+    },
+    {
+      "name": "time-series-db",
+      "url": "https://github.com/opensearch-project/time-series-db"
+    },
+    {
+      "name": "cluster-etcd",
+      "url": "https://github.com/opensearch-project/cluster-etcd"
+    },
+    {
+      "name": "dashboards-reporting",
+      "url": "https://github.com/opensearch-project/dashboards-reporting"
+    },
+    {
+      "name": "ml-commons-dashboards",
+      "url": "https://github.com/opensearch-project/ml-commons-dashboards"
+    },
+    {
+      "name": "oui-docs-cdk",
+      "url": "https://github.com/opensearch-project/oui-docs-cdk"
+    },
+    {
+      "name": "dashboards-observability",
+      "url": "https://github.com/opensearch-project/dashboards-observability"
+    },
+    {
+      "name": "spring-data-opensearch",
+      "url": "https://github.com/opensearch-project/spring-data-opensearch"
+    },
+    {
+      "name": "index-management",
+      "url": "https://github.com/opensearch-project/index-management"
+    },
+    {
+      "name": "opensearch-prometheus-exporter",
+      "url": "https://github.com/opensearch-project/opensearch-prometheus-exporter"
+    },
+    {
+      "name": "opensearch-k8s-operator",
+      "url": "https://github.com/opensearch-project/opensearch-k8s-operator"
+    },
+    {
+      "name": "query-insights",
+      "url": "https://github.com/opensearch-project/query-insights"
+    },
+    {
+      "name": "dashboards-query-workbench",
+      "url": "https://github.com/opensearch-project/dashboards-query-workbench"
+    },
+    {
+      "name": "dashboards-notifications",
+      "url": "https://github.com/opensearch-project/dashboards-notifications"
+    },
+    {
+      "name": "dashboards-visualizations",
+      "url": "https://github.com/opensearch-project/dashboards-visualizations"
+    },
+    {
+      "name": "security-analytics-dashboards-plugin",
+      "url": "https://github.com/opensearch-project/security-analytics-dashboards-plugin"
+    },
+    {
+      "name": "alerting-dashboards-plugin",
+      "url": "https://github.com/opensearch-project/alerting-dashboards-plugin"
+    },
+    {
+      "name": "query-insights-dashboards",
+      "url": "https://github.com/opensearch-project/query-insights-dashboards"
+    },
+    {
+      "name": "index-management-dashboards-plugin",
+      "url": "https://github.com/opensearch-project/index-management-dashboards-plugin"
+    },
+    {
+      "name": "observability",
+      "url": "https://github.com/opensearch-project/observability"
+    },
+    {
+      "name": "security-analytics",
+      "url": "https://github.com/opensearch-project/security-analytics"
+    },
+    {
+      "name": "opensearch-learning-to-rank-base",
+      "url": "https://github.com/opensearch-project/opensearch-learning-to-rank-base"
+    },
+    {
+      "name": "asynchronous-search",
+      "url": "https://github.com/opensearch-project/asynchronous-search"
+    },
+    {
+      "name": "custom-codecs",
+      "url": "https://github.com/opensearch-project/custom-codecs"
+    },
+    {
+      "name": "opensearch-system-templates",
+      "url": "https://github.com/opensearch-project/opensearch-system-templates"
+    },
+    {
+      "name": "cross-cluster-replication",
+      "url": "https://github.com/opensearch-project/cross-cluster-replication"
+    },
+    {
+      "name": "common-utils",
+      "url": "https://github.com/opensearch-project/common-utils"
+    },
+    {
+      "name": "performance-analyzer",
+      "url": "https://github.com/opensearch-project/performance-analyzer"
+    },
+    {
+      "name": "reporting",
+      "url": "https://github.com/opensearch-project/reporting"
+    },
+    {
+      "name": "technical-steering",
+      "url": "https://github.com/opensearch-project/technical-steering"
+    },
+    {
+      "name": "opensearch-plugins",
+      "url": "https://github.com/opensearch-project/opensearch-plugins"
+    },
+    {
+      "name": "opensearch-catalog",
+      "url": "https://github.com/opensearch-project/opensearch-catalog"
+    },
+    {
+      "name": "helm-charts",
+      "url": "https://github.com/opensearch-project/helm-charts"
+    },
+    {
+      "name": "ansible-playbook",
+      "url": "https://github.com/opensearch-project/ansible-playbook"
+    },
+    {
+      "name": "logstash-output-opensearch",
+      "url": "https://github.com/opensearch-project/logstash-output-opensearch"
+    },
+    {
+      "name": "opensearch-testcontainers",
+      "url": "https://github.com/opensearch-project/opensearch-testcontainers"
+    },
+    {
+      "name": "jenkins-gitops",
+      "url": "https://github.com/opensearch-project/jenkins-gitops"
+    },
+    {
+      "name": "opensearch-plugin-template-java",
+      "url": "https://github.com/opensearch-project/opensearch-plugin-template-java"
+    },
+    {
+      "name": "opensearch-sdk-java",
+      "url": "https://github.com/opensearch-project/opensearch-sdk-java"
+    },
+    {
+      "name": "opensearch-build-libraries",
+      "url": "https://github.com/opensearch-project/opensearch-build-libraries"
+    },
+    {
+      "name": "project-meta",
+      "url": "https://github.com/opensearch-project/project-meta"
+    },
+    {
+      "name": "agent-trace-eval-scheduler",
+      "url": "https://github.com/opensearch-project/agent-trace-eval-scheduler"
+    },
+    {
+      "name": "opensearch-benchmark-workloads",
+      "url": "https://github.com/opensearch-project/opensearch-benchmark-workloads"
+    },
+    {
+      "name": "performance-analyzer-commons",
+      "url": "https://github.com/opensearch-project/performance-analyzer-commons"
+    },
+    {
+      "name": "traffic-comparator",
+      "url": "https://github.com/opensearch-project/traffic-comparator"
+    },
+    {
+      "name": "opensearch-clients",
+      "url": "https://github.com/opensearch-project/opensearch-clients"
+    },
+    {
+      "name": "remote-vector-index-builder",
+      "url": "https://github.com/opensearch-project/remote-vector-index-builder"
+    },
+    {
+      "name": "opensearch-devops",
+      "url": "https://github.com/opensearch-project/opensearch-devops"
+    },
+    {
+      "name": "opensearch-spark",
+      "url": "https://github.com/opensearch-project/opensearch-spark"
+    },
+    {
+      "name": "sql-cli",
+      "url": "https://github.com/opensearch-project/sql-cli"
+    },
+    {
+      "name": "terraform-provider-opensearch",
+      "url": "https://github.com/opensearch-project/terraform-provider-opensearch"
+    },
+    {
+      "name": "project-tools",
+      "url": "https://github.com/opensearch-project/project-tools"
+    },
+    {
+      "name": "opensearch-metrics",
+      "url": "https://github.com/opensearch-project/opensearch-metrics"
+    },
+    {
+      "name": "opensearch-traffic-gateway",
+      "url": "https://github.com/opensearch-project/opensearch-traffic-gateway"
+    },
+    {
+      "name": "reporting-cli",
+      "url": "https://github.com/opensearch-project/reporting-cli"
+    },
+    {
+      "name": "project-website-search",
+      "url": "https://github.com/opensearch-project/project-website-search"
+    },
+    {
+      "name": "opentelemetry-demo",
+      "url": "https://github.com/opensearch-project/opentelemetry-demo"
+    },
+    {
+      "name": "community",
+      "url": "https://github.com/opensearch-project/community"
+    },
+    {
+      "name": "opensearch-ruby",
+      "url": "https://github.com/opensearch-project/opensearch-ruby"
+    },
+    {
+      "name": "foundation-website",
+      "url": "https://github.com/opensearch-project/foundation-website"
+    },
+    {
+      "name": "opensearch-oci-object-storage",
+      "url": "https://github.com/opensearch-project/opensearch-oci-object-storage"
+    },
+    {
+      "name": "security-response",
+      "url": "https://github.com/opensearch-project/security-response"
+    },
+    {
+      "name": "opensearch-olap",
+      "url": "https://github.com/opensearch-project/opensearch-olap"
+    },
+    {
+      "name": ".github",
+      "url": "https://github.com/opensearch-project/.github"
+    },
+    {
+      "name": "performance-analyzer-rca",
+      "url": "https://github.com/opensearch-project/performance-analyzer-rca"
+    },
+    {
+      "name": "sql-jdbc",
+      "url": "https://github.com/opensearch-project/sql-jdbc"
+    },
+    {
+      "name": "search-processor",
+      "url": "https://github.com/opensearch-project/search-processor"
+    },
+    {
+      "name": "dashboards-desktop",
+      "url": "https://github.com/opensearch-project/dashboards-desktop"
+    },
+    {
+      "name": "opensearch-ruby-aws-sigv4",
+      "url": "https://github.com/opensearch-project/opensearch-ruby-aws-sigv4"
+    },
+    {
+      "name": "cluster-etcd-old",
+      "url": "https://github.com/opensearch-project/cluster-etcd-old"
+    },
+    {
+      "name": "maps",
+      "url": "https://github.com/opensearch-project/maps"
+    },
+    {
+      "name": "logstash-input-opensearch",
+      "url": "https://github.com/opensearch-project/logstash-input-opensearch"
+    },
+    {
+      "name": "opensearch-signer-client",
+      "url": "https://github.com/opensearch-project/opensearch-signer-client"
+    },
+    {
+      "name": "sql-odbc",
+      "url": "https://github.com/opensearch-project/sql-odbc"
+    },
+    {
+      "name": "perftop",
+      "url": "https://github.com/opensearch-project/perftop"
+    },
+    {
+      "name": "opensearch-dashboards-test-library",
+      "url": "https://github.com/opensearch-project/opensearch-dashboards-test-library"
+    },
+    {
+      "name": "simple-schema",
+      "url": "https://github.com/opensearch-project/simple-schema"
+    },
+    {
+      "name": "dashboards-anywhere",
+      "url": "https://github.com/opensearch-project/dashboards-anywhere"
+    },
+    {
+      "name": "opensearch-correlations",
+      "url": "https://github.com/opensearch-project/opensearch-correlations"
+    },
+    {
+      "name": "opensearch-cli",
+      "url": "https://github.com/opensearch-project/opensearch-cli"
+    },
+    {
+      "name": "demos",
+      "url": "https://github.com/opensearch-project/demos"
+    },
+    {
+      "name": "opensearch-research",
+      "url": "https://github.com/opensearch-project/opensearch-research"
+    },
+    {
+      "name": "dashboards-load-testing",
+      "url": "https://github.com/opensearch-project/dashboards-load-testing"
+    },
+    {
+      "name": "dashboards-catalog",
+      "url": "https://github.com/opensearch-project/dashboards-catalog"
+    },
+    {
+      "name": "dashboards-storage-plugin",
+      "url": "https://github.com/opensearch-project/dashboards-storage-plugin"
+    },
+    {
+      "name": "crypto",
+      "url": "https://github.com/opensearch-project/crypto"
+    },
+    {
+      "name": "dashboards-i18n",
+      "url": "https://github.com/opensearch-project/dashboards-i18n"
+    },
+    {
+      "name": "traffic-replayer",
+      "url": "https://github.com/opensearch-project/traffic-replayer"
+    },
+    {
+      "name": "ux",
+      "url": "https://github.com/opensearch-project/ux"
+    },
+    {
+      "name": "piped-processing-language",
+      "url": "https://github.com/opensearch-project/piped-processing-language"
+    },
+    {
+      "name": "plugin-center",
+      "url": "https://github.com/opensearch-project/plugin-center"
+    },
+    {
+      "name": "opensearch-specification",
+      "url": "https://github.com/opensearch-project/opensearch-specification"
+    }
+  ]
+}

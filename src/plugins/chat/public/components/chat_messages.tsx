@@ -5,25 +5,62 @@
 
 import React, { useRef, useEffect, useMemo, useCallback } from 'react';
 import { EuiIcon, EuiText, EuiFlexGroup, EuiFlexItem, EuiPanel } from '@elastic/eui';
+import { useObservable } from 'react-use';
+import { map } from 'rxjs/operators';
 import { ChatLayoutMode } from '../types';
 import { MessageRow } from './message_row';
 import { TimelineToolCall, ToolCallRow } from './tool_call_row';
 import { ErrorRow } from './error_row';
 import type { Message, AssistantMessage, ToolMessage, ToolCall } from '../../common/types';
+import { TOOL_EXECUTION_ERROR_PREFIX } from '../../common';
 import './chat_messages.scss';
 import { ChatSuggestions } from './chat_suggestions';
 import { ToolCallGroup } from './tool_call_group';
-import { AssistantActionService } from '../../../context_provider/public';
+import { AssistantActionService, ToolCallState } from '../../../context_provider/public';
+import { RecentSessions } from './recent_sessions';
+import {
+  ConversationHistoryService,
+  SavedConversation,
+} from '../services/conversation_history_service';
 
 /**
- * Determine tool status based on tool call and result
+ * Determine tool status.
+ *
+ * Source of truth is the event-driven `toolCallStates` map maintained by
+ * `AssistantActionService` — it is updated in response to AG-UI events
+ * (TOOL_CALL_START / TOOL_CALL_END / TOOL_CALL_RESULT) and reflects the real
+ * lifecycle of the tool call.
+ *
+ * When there is no event state (e.g. historical tool calls loaded from a
+ * snapshot), status is derived from the ToolMessage in the timeline. At that
+ * point the absence of a ToolMessage means the call is abandoned — the run
+ * ended before the tool finished — not that it is still running.
+ *
+ * The chat event handler prefixes the tool result content with
+ * `TOOL_EXECUTION_ERROR_PREFIX` when a tool throws locally (see
+ * `handleToolCallEnd`). `chatService.sendToolResult` passes that string
+ * straight into the ToolMessage `content`, so detecting the prefix here
+ * lets a reloaded conversation render the tool row as an error without
+ * relying on a separate local-only ToolMessage.
  */
 function getToolStatus(
   toolCall: ToolCall,
+  toolCallStates?: Map<string, ToolCallState>,
   toolResult?: ToolMessage
 ): 'running' | 'completed' | 'error' {
-  if (!toolResult) return 'running';
-  if (toolResult.error) return 'error';
+  const state = toolCallStates?.get(toolCall.id);
+  if (state) {
+    switch (state.status) {
+      case 'complete':
+        return 'completed';
+      case 'failed':
+        return 'error';
+      default:
+        return 'running';
+    }
+  }
+  if (!toolResult) return 'error';
+  if (toolResult.content?.startsWith(TOOL_EXECUTION_ERROR_PREFIX)) return 'error';
   return 'completed';
 }
 
@@ -31,7 +68,8 @@ interface SuggestionItem {
   icon: string;
   iconColor?: string;
   text: string;
-  prompt: string;
+  prompt?: string;
+  action?: () => void;
 }
 
 const STARTER_SUGGESTIONS: SuggestionItem[] = [
@@ -60,10 +98,19 @@ interface ChatMessagesProps {
   timeline: Message[];
   isStreaming: boolean;
   onResendMessage?: (message: Message) => void;
+  onResendToolResult?: (params: {
+    messageId: string;
+    toolCallId: string;
+    toolResult: any;
+  }) => Promise<void>;
   onApproveConfirmation?: () => void;
   onRejectConfirmation?: () => void;
   onFillInput?: (content: string) => void;
   startResponse?: boolean;
+  threadId?: string;
+  onShowHistory?: () => void;
+  conversationHistoryService?: ConversationHistoryService;
+  onSelectConversation?: (conversation: SavedConversation) => void;
 }
 
 /**
@@ -79,7 +126,10 @@ interface ChatMessagesProps {
  * @param timeline - Array of messages from the conversation
  * @returns Array of message rows ready for display
  */
-export const convertTimelineToMessageRows = (timeline: Message[]) => {
+export const convertTimelineToMessageRows = (
+  timeline: Message[],
+  toolCallStates?: Map<string, ToolCallState>
+) => {
   const result: Array<
     | Message
     | { role: 'toolCallGroup'; toolCalls: TimelineToolCall[] }
@@ -100,22 +150,26 @@ export const convertTimelineToMessageRows = (timeline: Message[]) => {
       type: 'tool_call' as const,
       id: toolCall.id,
       toolName: toolCall.function.name,
-      status: getToolStatus(toolCall, toolResult),
+      status: getToolStatus(toolCall, toolCallStates, toolResult),
       arguments: toolCall.function.arguments,
       result: toolResult?.content,
       timestamp: Date.now(),
     };
   };
 
-  // Helper: Check if any tool call is running
+  // Helper: Check if a tool call is still running.
+  // Only event-driven toolCallStates can indicate "running" — a missing
+  // ToolMessage on a historical (state-less) tool call means it was
+  // abandoned, not that it is currently executing.
+  const isToolRunning = (toolCall: ToolCall): boolean => {
+    const state = toolCallStates?.get(toolCall.id);
+    if (!state) return false;
+    return state.status === 'pending' || state.status === 'executing';
+  };
+
   const hasRunningTool = (toolCalls?: ToolCall[]): boolean => {
     if (!toolCalls?.length) return false;
-    return toolCalls.some((tc) => {
-      const toolResult = timeline.find(
-        (msg): msg is ToolMessage => msg.role === 'tool' && msg.toolCallId === tc.id
-      );
-      return !toolResult; // No result means still running
-    });
+    return toolCalls.some(isToolRunning);
   };
 
   // Helper: Check if tool has custom renderer
@@ -230,15 +284,33 @@ const ChatMessagesComponent: React.FC<ChatMessagesProps> = ({
   timeline,
   isStreaming,
   onResendMessage,
+  onResendToolResult,
   onApproveConfirmation,
   onRejectConfirmation,
   onFillInput,
   startResponse,
+  threadId,
+  onShowHistory,
+  conversationHistoryService,
+  onSelectConversation,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const userHasScrolledUp = useRef<boolean>(false);
   const isAutoScrolling = useRef<boolean>(false);
+
+  // Subscribe to the real, event-driven tool call states so the UI reflects
+  // the actual TOOL_CALL_START/END/RESULT lifecycle rather than inferring
+  // status from ToolMessage presence in the timeline.
+  const assistantActionService = useMemo(() => AssistantActionService.getInstance(), []);
+  const toolCallStates$ = useMemo(
+    () => assistantActionService.getState$().pipe(map((state) => state.toolCallStates)),
+    [assistantActionService]
+  );
+  const toolCallStates = useObservable(
+    toolCallStates$,
+    assistantActionService.getCurrentState().toolCallStates
+  );
 
   // Context is now handled by RFC hooks and context pills
   // No need for separate context display here
@@ -333,7 +405,10 @@ const ChatMessagesComponent: React.FC<ChatMessagesProps> = ({
 
   // Context is now handled by RFC hooks - no subscriptions needed
 
-  const messageRows = useMemo(() => convertTimelineToMessageRows(timeline), [timeline]);
+  const messageRows = useMemo(() => convertTimelineToMessageRows(timeline, toolCallStates), [
+    timeline,
+    toolCallStates,
+  ]);
 
   const lastAssistantMessageIndex = useMemo(
     () => messageRows.findLastIndex((message) => message.role === 'assistant'),
@@ -350,6 +425,43 @@ const ChatMessagesComponent: React.FC<ChatMessagesProps> = ({
     const lastUserMessageIndex = messageRows.findLastIndex((message) => message.role === 'user');
     return lastAssistantMessageIndex > lastUserMessageIndex;
   }, [messageRows, isStreaming, lastAssistantMessageIndex]);
+
+  /**
+   * Determine if an assistant message at the given index is shareable.
+   * A message is shareable when:
+   * 1. The response is not currently streaming
+   * 2. No tool calls in the current turn are still running (awaiting results)
+   * 3. It is the last assistant message with content before the next user message (or end of timeline)
+   */
+  const isMessageShareable = useCallback(
+    (index: number): boolean => {
+      if (isStreaming) return false;
+
+      // Walk backward: check if any tool calls in this turn are still running
+      for (let j = index; j >= 0; j--) {
+        const prev = messageRows[j];
+        if (prev.role === 'user') break;
+        if (prev.role === 'toolCall' && prev.toolCall.status === 'running') return false;
+        if (prev.role === 'toolCallGroup') {
+          if (prev.toolCalls.some((tc) => tc.status === 'running')) return false;
+        }
+      }
+
+      // Walk forward: check for a later assistant message with content or running tools
+      for (let j = index + 1; j < messageRows.length; j++) {
+        const next = messageRows[j];
+        if (next.role === 'user') return true;
+        if (next.role === 'assistant' && (next as AssistantMessage).content) return false;
+        if (next.role === 'toolCall' && next.toolCall.status === 'running') return false;
+        if (next.role === 'toolCallGroup') {
+          if (next.toolCalls.some((tc) => tc.status === 'running')) return false;
+        }
+      }
+
+      return true; // Last message in timeline with no running tools
+    },
+    [messageRows, isStreaming]
+  );
 
   return (
     <>
@@ -379,7 +491,13 @@ const ChatMessagesComponent: React.FC<ChatMessagesProps> = ({
                   paddingSize="m"
                   hasBorder
                   className="chatMessages__suggestionCard"
-                  onClick={() => onFillInput?.(suggestion.prompt)}
+                  onClick={() => {
+                    if (suggestion.action) {
+                      suggestion.action();
+                    } else if (suggestion.prompt) {
+                      onFillInput?.(suggestion.prompt);
+                    }
+                  }}
                 >
                   <EuiFlexGroup alignItems="center" gutterSize="s" responsive={false}>
                     <EuiFlexItem grow={false}>
@@ -394,6 +512,13 @@ const ChatMessagesComponent: React.FC<ChatMessagesProps> = ({
                 </EuiPanel>
               ))}
             </div>
+            {conversationHistoryService && onSelectConversation && onShowHistory && (
+              <RecentSessions
+                conversationHistoryService={conversationHistoryService}
+                onSelectConversation={onSelectConversation}
+                onViewAll={onShowHistory}
+              />
+            )}
           </div>
         )}
 
@@ -405,6 +530,8 @@ const ChatMessagesComponent: React.FC<ChatMessagesProps> = ({
 
           if (message.role === 'assistant') {
             const assistantMsg = message as AssistantMessage;
+
+            const isShareable = isMessageShareable(index);
 
             const renderAssistantContent = () => {
               if (!assistantMsg.content) {
@@ -422,12 +549,21 @@ const ChatMessagesComponent: React.FC<ChatMessagesProps> = ({
                         content: content.text,
                         id: `${assistantMsg.id}-${contentIndex}`,
                       }}
+                      timeline={isShareable ? timeline : undefined}
+                      threadId={isShareable ? threadId : undefined}
+                      shareTargetMessage={isShareable ? assistantMsg : undefined}
                     />
                   ));
               }
 
               if (assistantMsg.content.trim()) {
-                return <MessageRow message={assistantMsg} />;
+                return (
+                  <MessageRow
+                    message={assistantMsg}
+                    timeline={isShareable ? timeline : undefined}
+                    threadId={isShareable ? threadId : undefined}
+                  />
+                );
               }
 
               return null;
@@ -467,7 +603,9 @@ const ChatMessagesComponent: React.FC<ChatMessagesProps> = ({
 
           // Handle system messages as errors
           if (message.role === 'system') {
-            return <ErrorRow key={message.id} error={message} />;
+            return (
+              <ErrorRow key={message.id} error={message} onResendToolResult={onResendToolResult} />
+            );
           }
 
           return null;

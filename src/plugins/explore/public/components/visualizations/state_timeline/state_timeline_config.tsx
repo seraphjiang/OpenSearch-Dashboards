@@ -12,7 +12,6 @@ import {
   Positions,
   TooltipOptions,
   VisFieldType,
-  TitleOptions,
   ValueMappingOptions,
   DisconnectValuesOption,
   ConnectNullValuesOption,
@@ -47,8 +46,6 @@ export interface StateTimeLineChartStyleOptions {
   standardAxes?: StandardAxes[];
 
   exclusive?: ExclusiveStateTimeLineConfig;
-
-  titleOptions?: TitleOptions;
 
   valueMappingOptions?: ValueMappingOptions;
   // TODO add Color mode options(temporary name) to make a switch between No style, Use Value Mapping Color, Use Threshold Color
@@ -105,11 +102,6 @@ export const defaultStateTimeLineChartStyles: StateTimeLineChartStyle = {
       },
     },
   ],
-
-  titleOptions: {
-    show: false,
-    titleName: '',
-  },
 };
 
 export const createStateTimelineConfig = (): VisualizationType<'state_timeline'> => ({
@@ -128,12 +120,24 @@ export const createStateTimelineConfig = (): VisualizationType<'state_timeline'>
           },
         ],
         render(props) {
+          const x = props.axisColumnMappings.x?.[0];
+          const y = props.axisColumnMappings.y?.[0];
+          const color = props.axisColumnMappings.color?.[0];
+          if (!x || !y || !color) throw Error('Missing axis config for state timeline');
           const spec = createNumericalStateTimeline(
             props.transformedData,
             props.styleOptions,
-            props.axisColumnMappings
+            { [AxisRole.X]: x, [AxisRole.Y]: y, [AxisRole.COLOR]: color },
+            props.onLegend
           );
-          return <EchartsRender spec={spec} onSelectTimeRange={props.onSelectTimeRange} />;
+          return (
+            <EchartsRender
+              spec={spec}
+              onSelectTimeRange={props.onSelectTimeRange}
+              legendSelected$={props.legendSelected$}
+              highlightedSeries$={props.highlightedSeries$}
+            />
+          );
         },
       },
       {
@@ -146,12 +150,24 @@ export const createStateTimelineConfig = (): VisualizationType<'state_timeline'>
           },
         ],
         render(props) {
+          const x = props.axisColumnMappings.x?.[0];
+          const y = props.axisColumnMappings.y?.[0];
+          const color = props.axisColumnMappings.color?.[0];
+          if (!x || !y || !color) throw Error('Missing axis config for state timeline');
           const spec = createCategoricalStateTimeline(
             props.transformedData,
             props.styleOptions,
-            props.axisColumnMappings
+            { [AxisRole.X]: x, [AxisRole.Y]: y, [AxisRole.COLOR]: color },
+            props.onLegend
           );
-          return <EchartsRender spec={spec} onSelectTimeRange={props.onSelectTimeRange} />;
+          return (
+            <EchartsRender
+              spec={spec}
+              onSelectTimeRange={props.onSelectTimeRange}
+              legendSelected$={props.legendSelected$}
+              highlightedSeries$={props.highlightedSeries$}
+            />
+          );
         },
       },
       {
@@ -163,12 +179,23 @@ export const createStateTimelineConfig = (): VisualizationType<'state_timeline'>
           },
         ],
         render(props) {
+          const x = props.axisColumnMappings.x?.[0];
+          const color = props.axisColumnMappings.color?.[0];
+          if (!x || !color) throw Error('Missing axis config for state timeline');
           const spec = createSingleCategoricalStateTimeline(
             props.transformedData,
             props.styleOptions,
-            props.axisColumnMappings
+            { [AxisRole.X]: x, [AxisRole.COLOR]: color },
+            props.onLegend
           );
-          return <EchartsRender spec={spec} onSelectTimeRange={props.onSelectTimeRange} />;
+          return (
+            <EchartsRender
+              spec={spec}
+              onSelectTimeRange={props.onSelectTimeRange}
+              legendSelected$={props.legendSelected$}
+              highlightedSeries$={props.highlightedSeries$}
+            />
+          );
         },
       },
       {
@@ -180,12 +207,23 @@ export const createStateTimelineConfig = (): VisualizationType<'state_timeline'>
           },
         ],
         render(props) {
+          const x = props.axisColumnMappings.x?.[0];
+          const color = props.axisColumnMappings.color?.[0];
+          if (!x || !color) throw Error('Missing axis config for state timeline');
           const spec = createSingleNumericalStateTimeline(
             props.transformedData,
             props.styleOptions,
-            props.axisColumnMappings
+            { [AxisRole.X]: x, [AxisRole.COLOR]: color },
+            props.onLegend
           );
-          return <EchartsRender spec={spec} onSelectTimeRange={props.onSelectTimeRange} />;
+          return (
+            <EchartsRender
+              spec={spec}
+              onSelectTimeRange={props.onSelectTimeRange}
+              legendSelected$={props.legendSelected$}
+              highlightedSeries$={props.highlightedSeries$}
+            />
+          );
         },
       },
     ];

@@ -12,7 +12,6 @@ import {
   VisFieldType,
   AxisRole,
   StandardAxes,
-  TitleOptions,
   AggregationType,
   BucketOptions,
   ThresholdOptions,
@@ -36,8 +35,6 @@ export interface HistogramChartStyleOptions {
 
   // Axes configuration
   standardAxes?: StandardAxes[];
-
-  titleOptions?: TitleOptions;
 
   // histogram bucket config
   bucket?: BucketOptions;
@@ -77,10 +74,6 @@ export const defaultHistogramChartStyles: HistogramChartStyle = {
       },
     },
   ],
-  titleOptions: {
-    show: false,
-    titleName: '',
-  },
   bucket: {
     aggregationType: AggregationType.SUM,
   },
@@ -101,11 +94,14 @@ export const createHistogramConfig = (): VisualizationType<'histogram'> => ({
           },
         ],
         render(props) {
-          const spec = createNumericalHistogramChart(
-            props.transformedData,
-            props.styleOptions,
-            props.axisColumnMappings
-          );
+          const x = props.axisColumnMappings.x?.[0];
+          const y = props.axisColumnMappings.y?.[0];
+          if (!x || !y) throw Error('Missing axis config for histogram');
+
+          const spec = createNumericalHistogramChart(props.transformedData, props.styleOptions, {
+            [AxisRole.X]: x,
+            [AxisRole.Y]: y,
+          });
           return <EchartsRender spec={spec} />;
         },
       },
@@ -117,11 +113,12 @@ export const createHistogramConfig = (): VisualizationType<'histogram'> => ({
           },
         ],
         render(props) {
-          const spec = createSingleHistogramChart(
-            props.transformedData,
-            props.styleOptions,
-            props.axisColumnMappings
-          );
+          const x = props.axisColumnMappings.x?.[0];
+          if (!x) throw Error('Missing axis config for histogram');
+
+          const spec = createSingleHistogramChart(props.transformedData, props.styleOptions, {
+            [AxisRole.X]: x,
+          });
           return <EchartsRender spec={spec} />;
         },
       },

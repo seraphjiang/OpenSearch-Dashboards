@@ -765,26 +765,338 @@ describe('ChatService', () => {
             },
           ]);
         }
-        // Third call returns MESSAGES_SNAPSHOT with the tool call
+        // Subsequent calls return MESSAGES_SNAPSHOT with the tool call
         return Promise.resolve(createMockMessagesSnapshot(toolCallId));
       });
 
       const response = await chatService.sendToolResult(toolCallId, { success: true }, []);
 
-      // Verify getConversation was called multiple times (polling)
-      expect(chatService.conversationHistoryService.getConversation).toHaveBeenCalledTimes(3);
+      // Verify getConversation was polled multiple times. We require 3
+      // consecutive synced observations before treating the tool call as
+      // stably synced, so after the first synced snapshot (call #3) two more
+      // confirming polls are needed (calls #4 and #5).
+      expect(chatService.conversationHistoryService.getConversation).toHaveBeenCalledTimes(5);
       expect(response.toolMessage.toolCallId).toBe(toolCallId);
     });
-    it('should throw error when thread ID is not set', async () => {
+    it('should skip dispatch with reason no_thread_id when thread ID is not set', async () => {
       // Create a new service without calling newThread
       const newService = new ChatService(mockUiSettings, mockCoreChatService);
 
       // Mock getThreadId to return undefined
       mockCoreChatService.getThreadId.mockReturnValue(undefined);
 
-      await expect(newService.sendToolResult('tool-123', 'result', [])).rejects.toThrow(
-        'Thread ID is required to send a tool result'
-      );
+      const response = await newService.sendToolResult('tool-123', 'result', []);
+
+      expect(response.skipped).toEqual({ reason: 'no_thread_id' });
+      expect(mockAgent.runAgent).not.toHaveBeenCalled();
+      expect(response.toolMessage).toEqual({
+        id: expect.stringMatching(/^msg-\d+-[a-z0-9]{9}$/),
+        role: 'tool',
+        content: 'result',
+        toolCallId: 'tool-123',
+      });
+    });
+
+    describe('skip branch (duplicate tool result across windows)', () => {
+      // Snapshot containing both the synced tool call and a ToolMessage with
+      // the same toolCallId — another window has already persisted the result.
+      const createSnapshotWithToolResult = (toolCallId: string) => [
+        {
+          type: 'MESSAGES_SNAPSHOT',
+          timestamp: Date.now(),
+          messages: [
+            { role: 'user', id: 'user-msg-1', content: 'Run it' },
+            {
+              role: 'assistant',
+              id: 'assistant-msg-1',
+              content: 'Running',
+              toolCalls: [
+                {
+                  id: toolCallId,
+                  type: 'function',
+                  function: { name: 'test_tool', arguments: '{}' },
+                },
+              ],
+            },
+            {
+              role: 'tool',
+              id: 'tool-msg-1',
+              content: '"already done"',
+              toolCallId,
+            },
+          ],
+        },
+      ];
+
+      beforeEach(() => {
+        mockCoreChatService.getMemoryProvider = jest
+          .fn()
+          .mockReturnValue({ includeFullHistory: false });
+      });
+
+      it('should skip dispatch and return skipped reason when tool result already exists', async () => {
+        const toolCallId = 'tool-call-duplicate';
+
+        chatService.conversationHistoryService.getConversation = jest
+          .fn()
+          .mockResolvedValue(createSnapshotWithToolResult(toolCallId));
+
+        const response = await chatService.sendToolResult(toolCallId, { ok: true }, []);
+
+        expect(mockAgent.runAgent).not.toHaveBeenCalled();
+        expect(response.skipped).toEqual({ reason: 'result_already_exists' });
+        expect(response.toolMessage).toEqual({
+          id: expect.stringMatching(/^msg-\d+-[a-z0-9]{9}$/),
+          role: 'tool',
+          content: JSON.stringify({ ok: true }),
+          toolCallId,
+        });
+      });
+
+      it('should return an observable that completes without emitting on skip', async () => {
+        const toolCallId = 'tool-call-complete-only';
+
+        chatService.conversationHistoryService.getConversation = jest
+          .fn()
+          .mockResolvedValue(createSnapshotWithToolResult(toolCallId));
+
+        const response = await chatService.sendToolResult(toolCallId, 'result', []);
+
+        const nextSpy = jest.fn();
+        const errorSpy = jest.fn();
+        const completeSpy = jest.fn();
+
+        response.observable.subscribe({
+          next: nextSpy,
+          error: errorSpy,
+          complete: completeSpy,
+        });
+
+        expect(nextSpy).not.toHaveBeenCalled();
+        expect(errorSpy).not.toHaveBeenCalled();
+        expect(completeSpy).toHaveBeenCalledTimes(1);
+        expect((chatService as any).activeRequests.size).toBe(0);
+      });
+
+      it('should short-circuit result_already_exists over synced when both are present in the same snapshot', async () => {
+        const toolCallId = 'tool-call-both-present';
+
+        chatService.conversationHistoryService.getConversation = jest
+          .fn()
+          .mockResolvedValue(createSnapshotWithToolResult(toolCallId));
+
+        const response = await chatService.sendToolResult(toolCallId, 'result', []);
+
+        expect(response.skipped).toEqual({ reason: 'result_already_exists' });
+        expect(mockAgent.runAgent).not.toHaveBeenCalled();
+      });
+
+      it('should NOT skip when snapshot contains only the synced tool call without a tool result', async () => {
+        const toolCallId = 'tool-call-synced-only';
+        const mockObservable = new Observable<BaseEvent>();
+        mockAgent.runAgent.mockReturnValue(mockObservable);
+
+        chatService.conversationHistoryService.getConversation = jest
+          .fn()
+          .mockResolvedValue(createMockMessagesSnapshot(toolCallId));
+
+        const response = await chatService.sendToolResult(toolCallId, { ok: true }, []);
+
+        expect(mockAgent.runAgent).toHaveBeenCalledTimes(1);
+        expect(response.skipped).toBeUndefined();
+      });
+    });
+
+    describe('abort signal', () => {
+      beforeEach(() => {
+        mockCoreChatService.getMemoryProvider = jest
+          .fn()
+          .mockReturnValue({ includeFullHistory: false });
+      });
+
+      it('should skip with reason aborted when signal is already aborted before dispatch', async () => {
+        const toolCallId = 'tool-call-abort-early';
+        const controller = new AbortController();
+        controller.abort();
+
+        // getConversation should not even be consulted — the early-out fires
+        // before sync polling.
+        chatService.conversationHistoryService.getConversation = jest.fn();
+
+        const response = await chatService.sendToolResult(
+          toolCallId,
+          { ok: true },
+          [],
+          controller.signal
+        );
+
+        expect(response.skipped).toEqual({ reason: 'aborted' });
+        expect(mockAgent.runAgent).not.toHaveBeenCalled();
+        expect(chatService.conversationHistoryService.getConversation).not.toHaveBeenCalled();
+        expect((chatService as any).activeRequests.size).toBe(0);
+      });
+
+      it('should skip with reason aborted when signal fires during sync polling', async () => {
+        const toolCallId = 'tool-call-abort-mid-sync';
+        const controller = new AbortController();
+
+        // Return a pending snapshot so the poller loops (no synced observation)
+        chatService.conversationHistoryService.getConversation = jest.fn().mockResolvedValue([
+          {
+            type: 'MESSAGES_SNAPSHOT',
+            timestamp: Date.now(),
+            messages: [{ role: 'user', id: 'u1', content: 'hi' }],
+          },
+        ]);
+
+        // Fire the abort shortly after the first poll resolves so the
+        // interruptible sleep can observe it.
+        setTimeout(() => controller.abort(), 5);
+
+        const response = await chatService.sendToolResult(
+          toolCallId,
+          { ok: true },
+          [],
+          controller.signal
+        );
+
+        expect(response.skipped).toEqual({ reason: 'aborted' });
+        expect(mockAgent.runAgent).not.toHaveBeenCalled();
+        expect((chatService as any).activeRequests.size).toBe(0);
+      });
+
+      it('should emit AbortError and call agent.abort when signal fires after dispatch', async () => {
+        const toolCallId = 'tool-call-abort-during-stream';
+        const controller = new AbortController();
+
+        // Minimal observable that never emits/completes so we can control
+        // lifecycle via the abort signal alone.
+        const pendingObservable = new Observable<BaseEvent>(() => {
+          // intentionally no-op — the wrapping Observable in sendToolResult
+          // owns the termination path
+          return () => {};
+        });
+        mockAgent.runAgent.mockReturnValue(pendingObservable);
+
+        chatService.conversationHistoryService.getConversation = jest
+          .fn()
+          .mockResolvedValue(createMockMessagesSnapshot(toolCallId));
+
+        const response = await chatService.sendToolResult(
+          toolCallId,
+          { ok: true },
+          [],
+          controller.signal
+        );
+
+        expect(response.skipped).toBeUndefined();
+        expect(mockAgent.runAgent).toHaveBeenCalledTimes(1);
+
+        const nextSpy = jest.fn();
+        const errorSpy = jest.fn();
+        const completeSpy = jest.fn();
+
+        response.observable.subscribe({
+          next: nextSpy,
+          error: errorSpy,
+          complete: completeSpy,
+        });
+
+        controller.abort();
+
+        expect(mockAgent.abort).toHaveBeenCalledTimes(1);
+        expect(errorSpy).toHaveBeenCalledTimes(1);
+        const emittedError = errorSpy.mock.calls[0][0];
+        expect(emittedError).toBeInstanceOf(Error);
+        expect(emittedError.name).toBe('AbortError');
+        expect(completeSpy).not.toHaveBeenCalled();
+        expect(nextSpy).not.toHaveBeenCalled();
+        expect((chatService as any).activeRequests.size).toBe(0);
+      });
+
+      it('should emit AbortError synchronously when signal is already aborted at subscribe time', async () => {
+        const toolCallId = 'tool-call-abort-at-subscribe';
+        const controller = new AbortController();
+
+        // Keep the underlying observable inert so only the abort path drives
+        // termination.
+        const pendingObservable = new Observable<BaseEvent>(() => () => {});
+        mockAgent.runAgent.mockReturnValue(pendingObservable);
+
+        chatService.conversationHistoryService.getConversation = jest
+          .fn()
+          .mockResolvedValue(createMockMessagesSnapshot(toolCallId));
+
+        const response = await chatService.sendToolResult(
+          toolCallId,
+          { ok: true },
+          [],
+          controller.signal
+        );
+
+        // Abort after dispatch but before subscribing — the subscribe path
+        // should detect the pre-aborted signal and emit AbortError immediately.
+        controller.abort();
+
+        const errorSpy = jest.fn();
+        const completeSpy = jest.fn();
+
+        response.observable.subscribe({
+          error: errorSpy,
+          complete: completeSpy,
+        });
+
+        expect(errorSpy).toHaveBeenCalledTimes(1);
+        expect(errorSpy.mock.calls[0][0].name).toBe('AbortError');
+        expect(completeSpy).not.toHaveBeenCalled();
+      });
+
+      it('should not emit twice when signal fires during an active subscription', async () => {
+        const toolCallId = 'tool-call-abort-no-double-emit';
+        const controller = new AbortController();
+
+        // Observable that emits one value, then stays open until aborted.
+        let innerEmit: ((v: BaseEvent) => void) | null = null;
+        const gatedObservable = new Observable<BaseEvent>((subscriber) => {
+          innerEmit = (v) => subscriber.next(v);
+          return () => {};
+        });
+        mockAgent.runAgent.mockReturnValue(gatedObservable);
+
+        chatService.conversationHistoryService.getConversation = jest
+          .fn()
+          .mockResolvedValue(createMockMessagesSnapshot(toolCallId));
+
+        const response = await chatService.sendToolResult(
+          toolCallId,
+          { ok: true },
+          [],
+          controller.signal
+        );
+
+        const nextSpy = jest.fn();
+        const errorSpy = jest.fn();
+        const completeSpy = jest.fn();
+
+        response.observable.subscribe({
+          next: nextSpy,
+          error: errorSpy,
+          complete: completeSpy,
+        });
+
+        // Deliver one value so the subscription is live.
+        innerEmit!({ type: 'RUN_STARTED' } as BaseEvent);
+        expect(nextSpy).toHaveBeenCalledTimes(1);
+
+        // Abort, then try to shove more values through — they should be
+        // swallowed by the `settled` guard rather than reaching the subscriber.
+        controller.abort();
+        innerEmit!({ type: 'RUN_FINISHED' } as BaseEvent);
+
+        expect(errorSpy).toHaveBeenCalledTimes(1);
+        expect(nextSpy).toHaveBeenCalledTimes(1);
+        expect(completeSpy).not.toHaveBeenCalled();
+      });
     });
   });
 

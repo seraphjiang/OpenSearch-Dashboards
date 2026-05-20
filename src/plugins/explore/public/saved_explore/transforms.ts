@@ -13,6 +13,7 @@ import {
   ChartType,
   StyleOptions,
 } from '../components/visualizations/utils/use_visualization_types';
+import { AxisFieldNameMappings } from '../components/visualizations/types';
 
 export interface ExploreState {
   legacy: LegacyState;
@@ -23,7 +24,10 @@ export interface ExploreState {
 interface VisState {
   chartType?: ChartType;
   styleOptions?: StyleOptions;
-  axesMapping?: Record<string, string>;
+  axesMapping?: AxisFieldNameMappings;
+  splitField?: string;
+  splitLayout?: string;
+  showSplitLabel?: boolean;
 }
 
 export const saveStateToSavedObject = (
@@ -43,10 +47,13 @@ export const saveStateToSavedObject = (
     chartType: visState?.chartType ?? 'line',
     params: visState?.styleOptions ?? {},
     axesMapping: visState?.axesMapping,
+    splitField: visState?.splitField,
+    splitLayout: visState?.splitLayout,
+    showSplitLabel: visState?.showSplitLabel,
   });
 
   obj.uiState = JSON.stringify({
-    activeTab: activeTabId || tabDefinition?.id || 'logs',
+    activeTab: (tabDefinition ? activeTabId : undefined) || tabDefinition?.id || '',
   });
   obj.searchSourceFields = { index: dataset };
 

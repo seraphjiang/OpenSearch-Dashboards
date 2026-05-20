@@ -4,7 +4,7 @@
  */
 
 import { createPieSpec } from './to_expression';
-import { VisColumn, VisFieldType, Positions, AxisRole, AxisColumnMappings } from '../types';
+import { VisColumn, VisFieldType, Positions, AxisRole } from '../types';
 import { defaultPieChartStyles, PieChartStyle } from './pie_vis_config';
 
 describe('Pie Chart to_expression', () => {
@@ -38,7 +38,7 @@ describe('Pie Chart to_expression', () => {
     legendPosition: Positions.RIGHT,
   };
 
-  const mockAxisMappings: AxisColumnMappings = {
+  const mockAxisMappings = {
     [AxisRole.SIZE]: numericColumn,
     [AxisRole.COLOR]: categoricalColumn,
   };
@@ -59,32 +59,6 @@ describe('Pie Chart to_expression', () => {
     expect(pieSeries.length).toBeGreaterThanOrEqual(1);
   });
 
-  it('handles title display options', () => {
-    const noTitle = createPieSpec(
-      mockData,
-      { ...mockStyles, titleOptions: { show: false, titleName: '' } },
-      mockAxisMappings
-    );
-    // @ts-expect-error TS2339 TODO(ts-upgrade): fixme
-    expect(noTitle?.title?.text).toBeUndefined();
-
-    const defaultTitle = createPieSpec(
-      mockData,
-      { ...mockStyles, titleOptions: { show: true, titleName: '' } },
-      mockAxisMappings
-    );
-    // @ts-expect-error TS2339 TODO(ts-upgrade): fixme
-    expect(defaultTitle?.title?.text).toBe('Value by Category');
-
-    const customTitle = createPieSpec(
-      mockData,
-      { ...mockStyles, titleOptions: { show: true, titleName: 'Custom Pie' } },
-      mockAxisMappings
-    );
-    // @ts-expect-error TS2339 TODO(ts-upgrade): fixme
-    expect(customTitle?.title?.text).toBe('Custom Pie');
-  });
-
   it('configures donut radius when donut option is true', () => {
     const donutStyles = {
       ...mockStyles,
@@ -99,8 +73,6 @@ describe('Pie Chart to_expression', () => {
   });
 
   it('throws when color or theta config is missing', () => {
-    expect(() => createPieSpec(mockData, mockStyles, {})).toThrow(
-      'Missing color or theta config for pie chart'
-    );
+    expect(() => createPieSpec(mockData, mockStyles, {} as any)).toThrow();
   });
 });

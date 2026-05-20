@@ -4,7 +4,7 @@
  */
 
 import { createRegularHeatmap } from './to_expression';
-import { VisColumn, VisFieldType, AxisRole, AxisColumnMappings, Positions } from '../types';
+import { VisColumn, VisFieldType, AxisRole, Positions } from '../types';
 import { defaultHeatmapChartStyles, HeatmapChartStyle } from './heatmap_vis_config';
 
 describe('Heatmap to_expression', () => {
@@ -52,7 +52,7 @@ describe('Heatmap to_expression', () => {
   };
 
   describe('createRegularHeatmap', () => {
-    const mockAxisColumnMappings: AxisColumnMappings = {
+    const mockAxisColumnMappings = {
       [AxisRole.X]: mockCategoricalColumns[0],
       [AxisRole.Y]: mockCategoricalColumns[1],
       [AxisRole.COLOR]: mockNumericalColumns[0],
@@ -77,36 +77,8 @@ describe('Heatmap to_expression', () => {
       expect(heatmapSeries.length).toBeGreaterThanOrEqual(1);
     });
 
-    it('handles title display options', () => {
-      const noTitleResult = createRegularHeatmap(
-        mockData,
-        { ...mockStyles, titleOptions: { show: false, titleName: '' } },
-        mockAxisColumnMappings
-      );
-      // @ts-expect-error TS2339 TODO(ts-error): fixme
-      expect(noTitleResult?.title?.text).toBeUndefined();
-
-      const defaultTitleResult = createRegularHeatmap(
-        mockData,
-        { ...mockStyles, titleOptions: { show: true, titleName: '' } },
-        mockAxisColumnMappings
-      );
-      // @ts-expect-error TS2339 TODO(ts-error): fixme
-      expect(defaultTitleResult?.title?.text).toBe('Value by Category1 and Category2');
-
-      const customTitleResult = createRegularHeatmap(
-        mockData,
-        { ...mockStyles, titleOptions: { show: true, titleName: 'Custom Heatmap' } },
-        mockAxisColumnMappings
-      );
-      // @ts-expect-error TS2339 TODO(ts-error): fixme
-      expect(customTitleResult?.title?.text).toBe('Custom Heatmap');
-    });
-
     it('throws when axis config is missing', () => {
-      expect(() => createRegularHeatmap(mockData, mockStyles, {})).toThrow(
-        'Missing axis config for heatmap chart'
-      );
+      expect(() => createRegularHeatmap(mockData, mockStyles, {} as any)).toThrow();
     });
   });
 });

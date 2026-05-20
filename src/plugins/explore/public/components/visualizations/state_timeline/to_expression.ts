@@ -3,16 +3,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AxisColumnMappings, AxisRole, DisableMode, Threshold } from '../types';
+import { AxisRole, VisColumn, DisableMode, Threshold } from '../types';
 import { StateTimeLineChartStyle } from './state_timeline_config';
-import { getSwappedAxisRole } from '../utils/utils';
+import { getAxisConfig } from '../utils/utils';
 import {
   mergeDataCore,
   convertThresholdsToValueMappings,
   groupByMergedLabel,
   createStateTimeLineSpec,
 } from './state_timeline_utils';
-import { pipe, createBaseConfig, buildAxisConfigs, assembleSpec } from '../utils/echarts_spec';
+import {
+  pipe,
+  createBaseConfig,
+  buildAxisConfigs,
+  assembleSpec,
+  collectLegend,
+} from '../utils/echarts_spec';
+import { ColorMap } from '../utils/color_map';
 import { convertTo2DArray, transform, map, pick, sortByTime } from '../utils/data_transformation';
 
 const normalizeConfig = (styleOptions: StateTimeLineChartStyle) => {
@@ -40,19 +47,17 @@ const normalizeConfig = (styleOptions: StateTimeLineChartStyle) => {
 export const createNumericalStateTimeline = (
   transformedData: Array<Record<string, any>>,
   styleOptions: StateTimeLineChartStyle,
-  axisColumnMappings?: AxisColumnMappings
+  axisColumnMappings: {
+    [AxisRole.X]: VisColumn;
+    [AxisRole.Y]: VisColumn;
+    [AxisRole.COLOR]: VisColumn;
+  },
+  onLegend?: (legend: ColorMap) => void
 ): any => {
-  const axisConfig = getSwappedAxisRole(styleOptions, axisColumnMappings);
-
-  const timeField = axisConfig.xAxis?.column;
-  const groupField = axisConfig.yAxis?.column;
-
-  const colorMapping = axisColumnMappings?.[AxisRole.COLOR];
-
-  const categoryField2 = colorMapping?.column;
-
-  if (!groupField || !timeField || !categoryField2)
-    throw Error('Missing field config for state-timeline chart');
+  const axisConfig = getAxisConfig(styleOptions);
+  const xCol = axisColumnMappings[AxisRole.X];
+  const yCol = axisColumnMappings[AxisRole.Y];
+  const colorCol = axisColumnMappings[AxisRole.COLOR];
 
   const { valueMappings, rangeMappings, disconnectThreshold, connectThreshold } = normalizeConfig(
     styleOptions
@@ -65,16 +70,16 @@ export const createNumericalStateTimeline = (
 
   const convertedThresholds = convertThresholdsToValueMappings(completeThreshold);
 
-  const allColumns = [...Object.values(axisColumnMappings ?? {}).map((m) => m.column)];
+  const allColumns = Object.values(axisColumnMappings).map((m) => m.column);
 
   const result = pipe(
     transform(
       map(pick(allColumns)),
-      sortByTime(axisColumnMappings?.x?.column),
+      sortByTime(xCol.column),
       mergeDataCore({
-        timestampField: timeField,
-        groupField,
-        mappingField: categoryField2,
+        timestampField: xCol.column,
+        groupField: yCol.column,
+        mappingField: colorCol.column,
         valueMappings: styleOptions.useThresholdColor ? [] : valueMappings,
         rangeMappings: styleOptions.useThresholdColor ? convertedThresholds : rangeMappings,
         disconnectThreshold,
@@ -87,18 +92,18 @@ export const createNumericalStateTimeline = (
       groupByMergedLabel(convertTo2DArray())
     ),
     createBaseConfig({
-      title: `${colorMapping?.name} by ${axisConfig.yAxis?.name} and ${axisConfig.xAxis?.name}`,
       addTrigger: false,
-      legend: { show: styleOptions.addLegend },
+      legend: { show: false },
     }),
     buildAxisConfigs,
-    createStateTimeLineSpec({ styles: styleOptions, groupField }),
+    createStateTimeLineSpec({ styles: styleOptions, groupField: yCol.column }),
+    collectLegend(onLegend),
     assembleSpec
   )({
     data: transformedData,
     styles: styleOptions,
     axisConfig,
-    axisColumnMappings: axisColumnMappings ?? {},
+    axisColumnMappings,
   });
 
   return result.spec;
@@ -107,32 +112,30 @@ export const createNumericalStateTimeline = (
 export const createCategoricalStateTimeline = (
   transformedData: Array<Record<string, any>>,
   styleOptions: StateTimeLineChartStyle,
-  axisColumnMappings?: AxisColumnMappings
+  axisColumnMappings: {
+    [AxisRole.X]: VisColumn;
+    [AxisRole.Y]: VisColumn;
+    [AxisRole.COLOR]: VisColumn;
+  },
+  onLegend?: (legend: ColorMap) => void
 ): any => {
-  const axisConfig = getSwappedAxisRole(styleOptions, axisColumnMappings);
-
-  const timeField = axisConfig.xAxis?.column;
-  const groupField = axisConfig.yAxis?.column;
-
-  const colorMapping = axisColumnMappings?.[AxisRole.COLOR];
-
-  const categoryField2 = colorMapping?.column;
-
-  if (!groupField || !timeField || !categoryField2)
-    throw Error('Missing field config for state-timeline chart');
+  const axisConfig = getAxisConfig(styleOptions);
+  const xCol = axisColumnMappings[AxisRole.X];
+  const yCol = axisColumnMappings[AxisRole.Y];
+  const colorCol = axisColumnMappings[AxisRole.COLOR];
 
   const { valueMappings, disconnectThreshold, connectThreshold } = normalizeConfig(styleOptions);
 
-  const allColumns = [...Object.values(axisColumnMappings ?? {}).map((m) => m.column)];
+  const allColumns = Object.values(axisColumnMappings).map((m) => m.column);
 
   const result = pipe(
     transform(
       map(pick(allColumns)),
-      sortByTime(axisColumnMappings?.x?.column),
+      sortByTime(xCol.column),
       mergeDataCore({
-        timestampField: timeField,
-        groupField,
-        mappingField: categoryField2,
+        timestampField: xCol.column,
+        groupField: yCol.column,
+        mappingField: colorCol.column,
         valueMappings: styleOptions.useThresholdColor ? [] : valueMappings,
         disconnectThreshold,
         connectThreshold,
@@ -143,18 +146,18 @@ export const createCategoricalStateTimeline = (
       groupByMergedLabel(convertTo2DArray())
     ),
     createBaseConfig({
-      title: `${colorMapping?.name} by ${axisConfig.yAxis?.name} and ${axisConfig.xAxis?.name}`,
       addTrigger: false,
-      legend: { show: styleOptions.addLegend },
+      legend: { show: false },
     }),
     buildAxisConfigs,
-    createStateTimeLineSpec({ styles: styleOptions, groupField }),
+    createStateTimeLineSpec({ styles: styleOptions, groupField: yCol.column }),
+    collectLegend(onLegend),
     assembleSpec
   )({
     data: transformedData,
     styles: styleOptions,
     axisConfig,
-    axisColumnMappings: axisColumnMappings ?? {},
+    axisColumnMappings,
   });
 
   return result.spec;
@@ -163,31 +166,25 @@ export const createCategoricalStateTimeline = (
 export const createSingleCategoricalStateTimeline = (
   transformedData: Array<Record<string, any>>,
   styleOptions: StateTimeLineChartStyle,
-  axisColumnMappings?: AxisColumnMappings
+  axisColumnMappings: { [AxisRole.X]: VisColumn; [AxisRole.COLOR]: VisColumn },
+  onLegend?: (legend: ColorMap) => void
 ): any => {
-  const axisConfig = getSwappedAxisRole(styleOptions, axisColumnMappings);
-
-  const timeField = axisConfig.xAxis?.column;
-
-  const colorMapping = axisColumnMappings?.[AxisRole.COLOR];
-
-  const categoryField = colorMapping?.column;
-
-  if (!timeField || !categoryField)
-    throw Error('Missing field config for single state-timeline chart');
+  const axisConfig = getAxisConfig(styleOptions);
+  const xCol = axisColumnMappings[AxisRole.X];
+  const colorCol = axisColumnMappings[AxisRole.COLOR];
 
   const { valueMappings, disconnectThreshold, connectThreshold } = normalizeConfig(styleOptions);
 
-  const allColumns = [...Object.values(axisColumnMappings ?? {}).map((m) => m.column)];
+  const allColumns = Object.values(axisColumnMappings).map((m) => m.column);
 
   const result = pipe(
     transform(
       map(pick(allColumns)),
-      sortByTime(axisColumnMappings?.x?.column),
+      sortByTime(xCol.column),
       mergeDataCore({
-        timestampField: timeField,
+        timestampField: xCol.column,
         groupField: undefined,
-        mappingField: categoryField,
+        mappingField: colorCol.column,
         valueMappings: styleOptions.useThresholdColor ? [] : valueMappings,
         disconnectThreshold,
         connectThreshold,
@@ -198,18 +195,18 @@ export const createSingleCategoricalStateTimeline = (
       groupByMergedLabel(convertTo2DArray())
     ),
     createBaseConfig({
-      title: `${colorMapping?.name}  by ${axisConfig.xAxis?.name}`,
       addTrigger: false,
-      legend: { show: styleOptions.addLegend },
+      legend: { show: false },
     }),
     buildAxisConfigs,
     createStateTimeLineSpec({ styles: styleOptions, groupField: undefined }),
+    collectLegend(onLegend),
     assembleSpec
   )({
     data: transformedData,
     styles: styleOptions,
     axisConfig,
-    axisColumnMappings: axisColumnMappings ?? {},
+    axisColumnMappings,
   });
 
   return result.spec;
@@ -218,18 +215,12 @@ export const createSingleCategoricalStateTimeline = (
 export const createSingleNumericalStateTimeline = (
   transformedData: Array<Record<string, any>>,
   styleOptions: StateTimeLineChartStyle,
-  axisColumnMappings?: AxisColumnMappings
+  axisColumnMappings: { [AxisRole.X]: VisColumn; [AxisRole.COLOR]: VisColumn },
+  onLegend?: (legend: ColorMap) => void
 ): any => {
-  const axisConfig = getSwappedAxisRole(styleOptions, axisColumnMappings);
-
-  const timeField = axisConfig.xAxis?.column;
-
-  const colorMapping = axisColumnMappings?.[AxisRole.COLOR];
-
-  const categoryField = colorMapping?.column;
-
-  if (!timeField || !categoryField)
-    throw Error('Missing field config for single state-timeline chart');
+  const axisConfig = getAxisConfig(styleOptions);
+  const xCol = axisColumnMappings[AxisRole.X];
+  const colorCol = axisColumnMappings[AxisRole.COLOR];
 
   const { valueMappings, rangeMappings, disconnectThreshold, connectThreshold } = normalizeConfig(
     styleOptions
@@ -241,16 +232,16 @@ export const createSingleNumericalStateTimeline = (
 
   const convertedThresholds = convertThresholdsToValueMappings(completeThreshold);
 
-  const allColumns = [...Object.values(axisColumnMappings ?? {}).map((m) => m.column)];
+  const allColumns = Object.values(axisColumnMappings).map((m) => m.column);
 
   const result = pipe(
     transform(
       map(pick(allColumns)),
-      sortByTime(axisColumnMappings?.x?.column),
+      sortByTime(xCol.column),
       mergeDataCore({
-        timestampField: timeField,
+        timestampField: xCol.column,
         groupField: undefined,
-        mappingField: categoryField,
+        mappingField: colorCol.column,
         valueMappings: styleOptions.useThresholdColor ? [] : valueMappings,
         rangeMappings: styleOptions.useThresholdColor ? convertedThresholds : rangeMappings,
         disconnectThreshold,
@@ -263,18 +254,18 @@ export const createSingleNumericalStateTimeline = (
       groupByMergedLabel(convertTo2DArray())
     ),
     createBaseConfig({
-      title: `${colorMapping?.name}  by ${axisConfig.xAxis?.name}`,
       addTrigger: false,
-      legend: { show: styleOptions.addLegend },
+      legend: { show: false },
     }),
     buildAxisConfigs,
     createStateTimeLineSpec({ styles: styleOptions, groupField: undefined }),
+    collectLegend(onLegend),
     assembleSpec
   )({
     data: transformedData,
     styles: styleOptions,
     axisConfig,
-    axisColumnMappings: axisColumnMappings ?? {},
+    axisColumnMappings,
   });
 
   return result.spec;

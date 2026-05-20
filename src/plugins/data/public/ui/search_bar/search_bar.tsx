@@ -32,7 +32,6 @@ import { InjectedIntl, injectI18n } from '@osd/i18n/react';
 import classNames from 'classnames';
 import { cloneDeep, compact, get, isEqual } from 'lodash';
 import React, { Component } from 'react';
-import ResizeObserver from 'resize-observer-polyfill';
 import {
   OpenSearchDashboardsReactContextValue,
   withOpenSearchDashboards,
@@ -351,7 +350,7 @@ class SearchBarUI extends Component<SearchBarProps, State> {
         this.props.intl.formatMessage(
           {
             id: 'data.search_bar.save_query.failedToSaveQuery',
-            defaultMessage: 'An error occured while saving your query{errorMessage}',
+            defaultMessage: 'An error occurred while saving your query{errorMessage}',
           },
           { errorMessage: error.message ? `: ${error.message}` : '' }
         )
